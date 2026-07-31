@@ -94,6 +94,10 @@ reports/dataset_audit/*.md
 !reports/dataset_audit/.gitkeep
 DATASET_CARD.md
 
+# Generated training-readiness reports
+reports/training_readiness/**
+!reports/training_readiness/.gitkeep
+
 # Model weights, checkpoints, and training outputs
 models/
 checkpoints/

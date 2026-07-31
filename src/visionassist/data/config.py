@@ -80,6 +80,37 @@ class VisaConfig(BaseModel):
     strict_phase5: bool = True
     phase5_normal_instructions_per_image: int = Field(default=3, ge=1, le=20)
     phase5_anomalous_instructions_per_image: int = Field(default=20, ge=1, le=20)
+    phase6_report_root: Path = Path("reports/training_readiness")
+    phase6_report_path: Path = Path(
+        "reports/training_readiness/visa_phase6_validation.json"
+    )
+    phase6_error_path: Path = Path(
+        "reports/training_readiness/visa_phase6_errors.jsonl"
+    )
+    phase6_statistics_path: Path = Path(
+        "reports/training_readiness/visa_phase6_statistics.json"
+    )
+    phase6_gallery_path: Path = Path(
+        "reports/training_readiness/visa_phase6_sample_gallery.html"
+    )
+    phase6_processor_report_path: Path = Path(
+        "reports/training_readiness/visa_phase6_processor.json"
+    )
+    phase6_sequence_statistics_path: Path = Path(
+        "reports/training_readiness/visa_phase6_sequence_statistics.json"
+    )
+    phase6_gallery_review_path: Path = Path(
+        "reports/training_readiness/visa_phase6_gallery_review.json"
+    )
+    strict_phase6: bool = True
+    phase6_expected_instructions: int = Field(default=52863, gt=0)
+    phase6_gallery_samples_per_family: int = Field(default=6, ge=1, le=50)
+    phase6_seed: int = 42
+    phase6_processor_model_id: str = "Qwen/Qwen2.5-VL-3B-Instruct"
+    phase6_processor_sample_size: int = Field(default=256, ge=1, le=5000)
+    phase6_analysis_sequence_limit: int = Field(default=4096, ge=128)
+    phase6_max_sequence_length: int | None = Field(default=None, ge=128)
+    phase6_trust_remote_code: bool = False
 
     @model_validator(mode="after")
     def validate_phase3_thresholds(self) -> VisaConfig:

@@ -15,6 +15,7 @@ from visionassist.data.phase2 import run_phase2
 from visionassist.data.phase3 import run_phase3
 from visionassist.data.phase4 import run_phase4
 from visionassist.data.phase5 import run_phase5
+from visionassist.data.phase6 import run_phase6
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 console = Console()
@@ -141,6 +142,61 @@ def phase5_visa_command(
     console.print(f"Warnings: {result.warnings}")
     console.print(f"Output directory: {result.output_directory}")
     console.print(f"Validation report: {result.report_path}")
+    console.print(f"Error report: {result.error_path}")
+
+
+@app.command("phase6-visa")
+def phase6_visa_command(
+    config: Path = typer.Option(
+        _config_option(), "--config", "-c", exists=True, dir_okay=False, readable=True
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+        help="Project root used to resolve image paths.",
+    ),
+    processor_smoke_test: bool = typer.Option(
+        False,
+        "--processor-smoke-test",
+        help="Load Qwen and run stratified token, vision-token, masking, and batch checks.",
+    ),
+    approve_gallery: bool = typer.Option(
+        False,
+        "--approve-gallery",
+        help="Record that the generated gallery was manually reviewed and approved.",
+    ),
+    reviewer: str | None = typer.Option(
+        None,
+        "--reviewer",
+        help="Name recorded with --approve-gallery.",
+    ),
+) -> None:
+    """Validate Phase 5 data for VLM training and create readiness reports."""
+
+    result = run_phase6(
+        load_visa_config(config),
+        project_root=project_root,
+        processor_smoke_test=processor_smoke_test,
+        approve_gallery=approve_gallery,
+        reviewer=reviewer,
+    )
+    console.print("[bold green]Phase 6 completed successfully.[/bold green]")
+    console.print(f"Instructions checked: {result.instructions}")
+    console.print(f"Unique images: {result.unique_images}")
+    console.print(f"Errors: {result.errors}")
+    console.print(f"Warnings: {result.warnings}")
+    console.print(f"Validation report: {result.report_path}")
+    console.print(f"Statistics: {result.statistics_path}")
+    console.print(f"Sample gallery: {result.gallery_path}")
+    if result.processor_report_path is not None:
+        console.print(f"Processor report: {result.processor_report_path}")
+    if result.sequence_statistics_path is not None:
+        console.print(f"Sequence statistics: {result.sequence_statistics_path}")
+    console.print(f"Gallery review: {result.gallery_review_path}")
+    console.print(f"Phase complete: {result.phase_complete}")
     console.print(f"Error report: {result.error_path}")
 
 
