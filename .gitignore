@@ -1,0 +1,145 @@
+# =============================================================================
+# VisionAssist .gitignore
+# =============================================================================
+
+# Python bytecode, caches, and test artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.hypothesis/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Virtual environments and local environment variables
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python build and packaging artifacts
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+wheels/
+pip-wheel-metadata/
+
+# Jupyter artifacts
+.ipynb_checkpoints/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.part
+logs/
+tmp/
+temp/
+
+# Downloaded and generated datasets
+data/downloads/
+data/raw/**
+data/interim/**
+data/processed/**
+data/splits/**
+
+# Generated manifests
+data/manifests/*.json
+data/manifests/*.jsonl
+data/manifests/*.csv
+
+# Preserve empty project directories
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/splits/.gitkeep
+!data/manifests/.gitkeep
+
+# Generated dataset reports and cards
+reports/dataset_audit/*.json
+reports/dataset_audit/*.jsonl
+reports/dataset_audit/*.csv
+reports/dataset_audit/*.pdf
+reports/dataset_audit/*.png
+reports/dataset_audit/*.jpg
+reports/dataset_audit/*.jpeg
+reports/dataset_audit/*.md
+!reports/dataset_audit/.gitkeep
+DATASET_CARD.md
+
+# Model weights, checkpoints, and training outputs
+models/
+checkpoints/
+outputs/
+training_outputs/
+trainer_output/
+wandb/
+mlruns/
+lightning_logs/
+runs/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+*.gguf
+*.h5
+*.joblib
+*.pkl
+
+# Large dataset and array formats
+*.npy
+*.npz
+*.parquet
+*.arrow
+*.feather
+*.hdf5
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+# Local project snapshots
+project_snapshots/
+
+# Local-only configuration overrides
+configs/local/
+configs/**/*.local.yaml
+configs/**/*.local.yml
+configs/**/*.private.yaml
+configs/**/*.private.yml
+
+# Documentation under docs/ is intentionally tracked, including:
+# docs/VISIONASSIST_DEVELOPMENT_RECORD.md

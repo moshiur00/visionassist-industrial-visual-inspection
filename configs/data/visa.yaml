@@ -1,0 +1,69 @@
+dataset_name: visa
+version: "2022-09-22"
+download_url: "https://amazon-visual-anomaly.s3.us-west-2.amazonaws.com/VisA_20220922.tar"
+archive_path: data/downloads/VisA_20220922.tar
+raw_root: data/raw/visa
+report_root: reports/dataset_audit
+manifest_path: data/manifests/visa_raw_manifest.jsonl
+archive_receipt_path: data/manifests/visa_archive_receipt.json
+license_report_path: reports/dataset_audit/VISA_LICENSE_REPORT.md
+dataset_card_path: DATASET_CARD.md
+expected_total_images: 10821
+expected_normal_images: 9621
+expected_anomalous_images: 1200
+expected_categories:
+  - candle
+  - capsules
+  - cashew
+  - chewinggum
+  - fryum
+  - macaroni1
+  - macaroni2
+  - pcb1
+  - pcb2
+  - pcb3
+  - pcb4
+  - pipe_fryum
+allowed_image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+verify_images: true
+compute_sha256: true
+chunk_size_bytes: 1048576
+request_timeout_seconds: 60
+canonical_manifest_path: data/interim/visa_canonical.jsonl
+phase2_report_path: reports/dataset_audit/visa_phase2_validation.json
+phase2_error_path: reports/dataset_audit/visa_phase2_errors.jsonl
+strict_phase2: true
+require_binary_masks: true
+
+phase3_manifest_path: data/interim/visa_features.jsonl
+phase3_report_path: reports/dataset_audit/visa_phase3_validation.json
+phase3_error_path: reports/dataset_audit/visa_phase3_errors.jsonl
+strict_phase3: true
+phase3_minor_max_area_ratio: 0.005
+phase3_moderate_max_area_ratio: 0.02
+phase3_major_keywords:
+  - missing
+  - misplaced
+  - damaged
+  - crack
+  - broken
+
+phase4_split_root: data/splits/vlm_supervised
+phase4_assignment_path: data/splits/vlm_supervised/split_assignments.csv
+phase4_report_path: reports/dataset_audit/visa_phase4_validation.json
+phase4_error_path: reports/dataset_audit/visa_phase4_errors.jsonl
+strict_phase4: true
+phase4_seed: 42
+phase4_train_ratio: 0.70
+phase4_validation_ratio: 0.15
+
+phase5_output_root: data/processed/visa_instructions
+phase5_report_path: reports/dataset_audit/visa_phase5_validation.json
+phase5_error_path: reports/dataset_audit/visa_phase5_errors.jsonl
+strict_phase5: true
+phase5_normal_instructions_per_image: 3
+phase5_anomalous_instructions_per_image: 20
+
