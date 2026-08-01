@@ -1,0 +1,405 @@
+{
+  "schema_version": "1.0",
+  "benchmark_records": 2100,
+  "predictions": 2100,
+  "evaluated": 2100,
+  "failure_records": 1740,
+  "failure_rate": 0.8285714285714286,
+  "failure_tag_counts": {
+    "adjacent_location": 84,
+    "failed_to_abstain": 38,
+    "false_negative": 119,
+    "false_positive": 139,
+    "incomplete_or_incorrect_facts": 350,
+    "invalid_json": 28,
+    "missing_required_field": 272,
+    "unsupported_field": 272,
+    "unsupported_root_cause": 7,
+    "unsupported_safety_claim": 1,
+    "wrong_condition": 272,
+    "wrong_defect": 456,
+    "wrong_location": 307,
+    "wrong_product": 493,
+    "wrong_severity": 262
+  },
+  "per_task": {
+    "binary_inspection": {
+      "count": 400,
+      "accuracy": 0.355,
+      "macro_precision": 0.4128817162736761,
+      "macro_recall": 0.35353535353535354,
+      "macro_f1": 0.37637539998877223,
+      "unparseable_count": 45,
+      "unparseable_rate": 0.1125,
+      "per_label": {
+        "anomalous": {
+          "precision": 0.3065326633165829,
+          "recall": 0.3388888888888889,
+          "f1": 0.32189973614775724,
+          "support": 180
+        },
+        "normal": {
+          "precision": 0.5192307692307693,
+          "recall": 0.36818181818181817,
+          "f1": 0.4308510638297873,
+          "support": 220
+        }
+      },
+      "confusion_matrix": {
+        "anomalous": {
+          "__unparsed__": 44,
+          "anomalous": 61,
+          "normal": 75
+        },
+        "normal": {
+          "__unparsed__": 1,
+          "anomalous": 138,
+          "normal": 81
+        }
+      }
+    },
+    "defect_identification": {
+      "count": 300.0,
+      "exact_match": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "evidence_explanation": {
+      "count": 200,
+      "mean_fact_coverage": 0.4725,
+      "unsupported_root_cause_rate": 0.0,
+      "unsupported_safety_claim_rate": 0.0
+    },
+    "localization": {
+      "count": 300,
+      "accuracy": 0.19666666666666666,
+      "macro_precision": 0.301980426980427,
+      "macro_recall": 0.2095908331268052,
+      "macro_f1": 0.16115643615643616,
+      "unparseable_count": 128,
+      "unparseable_rate": 0.4266666666666667,
+      "per_label": {
+        "bottom_center": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 24
+        },
+        "bottom_left": {
+          "precision": 0.25,
+          "recall": 0.08333333333333333,
+          "f1": 0.125,
+          "support": 12
+        },
+        "bottom_right": {
+          "precision": 0.45454545454545453,
+          "recall": 0.2631578947368421,
+          "f1": 0.3333333333333333,
+          "support": 19
+        },
+        "center": {
+          "precision": 0.625,
+          "recall": 0.3053435114503817,
+          "f1": 0.41025641025641024,
+          "support": 131
+        },
+        "center_left": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 41
+        },
+        "center_right": {
+          "precision": 1.0,
+          "recall": 0.034482758620689655,
+          "f1": 0.06666666666666667,
+          "support": 29
+        },
+        "top_center": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 24
+        },
+        "top_left": {
+          "precision": 0.2857142857142857,
+          "recall": 0.4,
+          "f1": 0.3333333333333333,
+          "support": 10
+        },
+        "top_right": {
+          "precision": 0.10256410256410256,
+          "recall": 0.8,
+          "f1": 0.18181818181818182,
+          "support": 10
+        }
+      },
+      "confusion_matrix": {
+        "bottom_center": {
+          "__unparsed__": 8,
+          "bottom_left": 2,
+          "bottom_right": 1,
+          "center": 9,
+          "center_right": 0,
+          "top_left": 1,
+          "top_right": 3
+        },
+        "bottom_left": {
+          "__unparsed__": 3,
+          "bottom_left": 1,
+          "bottom_right": 1,
+          "center": 2,
+          "center_right": 0,
+          "top_left": 0,
+          "top_right": 5
+        },
+        "bottom_right": {
+          "__unparsed__": 6,
+          "bottom_left": 0,
+          "bottom_right": 5,
+          "center": 1,
+          "center_right": 0,
+          "top_left": 0,
+          "top_right": 7
+        },
+        "center": {
+          "__unparsed__": 63,
+          "bottom_left": 1,
+          "bottom_right": 0,
+          "center": 40,
+          "center_right": 0,
+          "top_left": 1,
+          "top_right": 26
+        },
+        "center_left": {
+          "__unparsed__": 23,
+          "bottom_left": 0,
+          "bottom_right": 0,
+          "center": 1,
+          "center_right": 0,
+          "top_left": 7,
+          "top_right": 10
+        },
+        "center_right": {
+          "__unparsed__": 10,
+          "bottom_left": 0,
+          "bottom_right": 3,
+          "center": 5,
+          "center_right": 1,
+          "top_left": 1,
+          "top_right": 9
+        },
+        "top_center": {
+          "__unparsed__": 9,
+          "bottom_left": 0,
+          "bottom_right": 0,
+          "center": 5,
+          "center_right": 0,
+          "top_left": 0,
+          "top_right": 10
+        },
+        "top_left": {
+          "__unparsed__": 5,
+          "bottom_left": 0,
+          "bottom_right": 0,
+          "center": 1,
+          "center_right": 0,
+          "top_left": 4,
+          "top_right": 0
+        },
+        "top_right": {
+          "__unparsed__": 1,
+          "bottom_left": 0,
+          "bottom_right": 1,
+          "center": 0,
+          "center_right": 0,
+          "top_left": 0,
+          "top_right": 8
+        }
+      },
+      "adjacent_tolerance_accuracy": 0.4766666666666667
+    },
+    "product_identification": {
+      "count": 300,
+      "accuracy": 0.16,
+      "macro_precision": 0.25,
+      "macro_recall": 0.16,
+      "macro_f1": 0.16790402058259202,
+      "unparseable_count": 252,
+      "unparseable_rate": 0.84,
+      "per_label": {
+        "candle": {
+          "precision": 1.0,
+          "recall": 0.04,
+          "f1": 0.07692307692307693,
+          "support": 25
+        },
+        "capsules": {
+          "precision": 1.0,
+          "recall": 0.96,
+          "f1": 0.9795918367346939,
+          "support": 25
+        },
+        "cashew": {
+          "precision": 1.0,
+          "recall": 0.92,
+          "f1": 0.9583333333333334,
+          "support": 25
+        },
+        "chewinggum": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 26
+        },
+        "fryum": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        },
+        "macaroni1": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        },
+        "macaroni2": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        },
+        "pcb1": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        },
+        "pcb2": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 24
+        },
+        "pcb3": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        },
+        "pcb4": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        },
+        "pipe_fryum": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 25
+        }
+      },
+      "confusion_matrix": {
+        "candle": {
+          "__unparsed__": 24,
+          "candle": 1,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "capsules": {
+          "__unparsed__": 1,
+          "candle": 0,
+          "capsules": 24,
+          "cashew": 0
+        },
+        "cashew": {
+          "__unparsed__": 2,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 23
+        },
+        "chewinggum": {
+          "__unparsed__": 26,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "fryum": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "macaroni1": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "macaroni2": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "pcb1": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "pcb2": {
+          "__unparsed__": 24,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "pcb3": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "pcb4": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        },
+        "pipe_fryum": {
+          "__unparsed__": 25,
+          "candle": 0,
+          "capsules": 0,
+          "cashew": 0
+        }
+      }
+    },
+    "structured_report": {
+      "count": 300,
+      "json_valid_rate": 0.9066666666666666,
+      "schema_valid_rate": 0.0,
+      "field_completeness": 0.13142857142857142,
+      "condition_accuracy": 0.0,
+      "product_accuracy": 0.10333333333333333,
+      "defect_f1": 0.38666666666666666,
+      "location_accuracy": 0.4066666666666667,
+      "severity_accuracy": 0.03333333333333333,
+      "unsupported_field_rate": 0.9066666666666666
+    },
+    "technician_note": {
+      "count": 150,
+      "mean_fact_coverage": 0.49833333333333335,
+      "unsupported_root_cause_rate": 0.0,
+      "unsupported_safety_claim_rate": 0.0
+    },
+    "uncertainty": {
+      "count": 150,
+      "appropriate_abstention_accuracy": 0.74,
+      "unsupported_root_cause_rate": 0.0,
+      "unsupported_safety_claim_rate": 0.006666666666666667
+    }
+  }
+}

@@ -21,6 +21,7 @@ from visionassist.evaluation.metrics import (
 )
 from visionassist.evaluation.normalize import parse_json_object, split_compound_label
 from visionassist.evaluation.parsers import (
+    canonicalize_defect_set,
     parse_condition,
     parse_defects,
     parse_location,
@@ -149,6 +150,8 @@ def _structured_score(
             "unsupported_field_count": 0,
             "condition_correct": False,
             "product_correct": False,
+            "strict_defect_exact_match": False,
+            "strict_defect_f1": 0.0,
             "defect_f1": 0.0,
             "location_correct": False,
             "severity_correct": False,
@@ -168,7 +171,10 @@ def _structured_score(
     severity = parse_severity(prediction)
     true_defects = split_compound_label(record.metadata.defect_type)
     pred_defects = parse_defects(prediction, defect_vocabulary)
-    defect_result = set_metrics(true_defects, pred_defects)
+    strict_defect_result = set_metrics(true_defects, pred_defects)
+    semantic_true_defects = canonicalize_defect_set(true_defects)
+    semantic_pred_defects = parse_defects(prediction, defect_vocabulary, semantic=True)
+    defect_result = set_metrics(semantic_true_defects, semantic_pred_defects)
     condition_correct = condition == record.metadata.condition
     product_correct = product == record.metadata.category
     location_correct = location == record.metadata.location
@@ -191,6 +197,8 @@ def _structured_score(
         "unsupported_field_count": len(unsupported),
         "condition_correct": condition_correct,
         "product_correct": product_correct,
+        "strict_defect_exact_match": bool(strict_defect_result["exact_match"]),
+        "strict_defect_f1": float(strict_defect_result["f1"]),
         "defect_f1": float(defect_result["f1"]),
         "location_correct": location_correct,
         "severity_correct": severity_correct,
@@ -234,10 +242,25 @@ def _evaluate_one(
         if not correct:
             failures.append("wrong_product")
     elif task == "defect_identification":
-        truth = split_compound_label(record.metadata.defect_type)
-        parsed = parse_defects(prediction, defect_vocabulary)
-        scores = set_metrics(truth, parsed)
-        result.update({"truth_set": sorted(truth), "parsed_set": sorted(parsed), **scores})
+        strict_truth = split_compound_label(record.metadata.defect_type)
+        strict_parsed = parse_defects(prediction, defect_vocabulary)
+        strict_scores = set_metrics(strict_truth, strict_parsed)
+        semantic_truth = canonicalize_defect_set(strict_truth)
+        semantic_parsed = parse_defects(prediction, defect_vocabulary, semantic=True)
+        scores = set_metrics(semantic_truth, semantic_parsed)
+        result.update(
+            {
+                "truth_set": sorted(semantic_truth),
+                "parsed_set": sorted(semantic_parsed),
+                "strict_truth_set": sorted(strict_truth),
+                "strict_parsed_set": sorted(strict_parsed),
+                "strict_exact_match": strict_scores["exact_match"],
+                "strict_precision": strict_scores["precision"],
+                "strict_recall": strict_scores["recall"],
+                "strict_f1": strict_scores["f1"],
+                **scores,
+            }
+        )
         if not bool(scores["exact_match"]):
             failures.append(
                 "partial_compound_defect" if float(scores["f1"]) > 0 else "wrong_defect"
@@ -304,7 +327,7 @@ def _aggregate_task(task: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
             )
         return metrics
     if task == "defect_identification":
-        return aggregate_set_metrics(
+        semantic = aggregate_set_metrics(
             [
                 {
                     "exact_match": row["exact_match"],
@@ -315,19 +338,61 @@ def _aggregate_task(task: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
                 for row in rows
             ]
         )
+        strict = aggregate_set_metrics(
+            [
+                {
+                    "exact_match": row["strict_exact_match"],
+                    "precision": row["strict_precision"],
+                    "recall": row["strict_recall"],
+                    "f1": row["strict_f1"],
+                }
+                for row in rows
+            ]
+        )
+        return {**semantic, **{f"strict_{key}": value for key, value in strict.items() if key != "count"}}
     if task == "structured_report":
         return {
             "count": len(rows),
-            "json_valid_rate": _mean([float(row["json_valid"]) for row in rows]),
-            "schema_valid_rate": _mean([float(row["schema_valid"]) for row in rows]),
-            "field_completeness": _mean([float(row["field_completeness"]) for row in rows]),
-            "condition_accuracy": _mean([float(row["condition_correct"]) for row in rows]),
-            "product_accuracy": _mean([float(row["product_correct"]) for row in rows]),
-            "defect_f1": _mean([float(row["defect_f1"]) for row in rows]),
-            "location_accuracy": _mean([float(row["location_correct"]) for row in rows]),
-            "severity_accuracy": _mean([float(row["severity_correct"]) for row in rows]),
+            "json_valid_rate": _mean(
+                [float(bool(row.get("json_valid", False))) for row in rows]
+            ),
+            "schema_valid_rate": _mean(
+                [float(bool(row.get("schema_valid", False))) for row in rows]
+            ),
+            "field_completeness": _mean(
+                [float(row.get("field_completeness", 0.0)) for row in rows]
+            ),
+            "condition_accuracy": _mean(
+                [float(bool(row.get("condition_correct", False))) for row in rows]
+            ),
+            "product_accuracy": _mean(
+                [float(bool(row.get("product_correct", False))) for row in rows]
+            ),
+            "defect_f1": _mean(
+                [float(row.get("defect_f1", 0.0)) for row in rows]
+            ),
+            "strict_defect_f1": _mean(
+                [
+                    float(
+                        row.get(
+                            "strict_defect_f1",
+                            row.get("defect_f1", 0.0),
+                        )
+                    )
+                    for row in rows
+                ]
+            ),
+            "location_accuracy": _mean(
+                [float(bool(row.get("location_correct", False))) for row in rows]
+            ),
+            "severity_accuracy": _mean(
+                [float(bool(row.get("severity_correct", False))) for row in rows]
+            ),
             "unsupported_field_rate": _mean(
-                [float(row["unsupported_field_count"] > 0) for row in rows]
+                [
+                    float(int(row.get("unsupported_field_count", 0)) > 0)
+                    for row in rows
+                ]
             ),
         }
     if task == "uncertainty":
@@ -448,7 +513,7 @@ def evaluate_baseline_predictions(
         )
 
     overall = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "benchmark_records": len(benchmark),
         "predictions": len(predictions),
         "evaluated": len(evaluated),
