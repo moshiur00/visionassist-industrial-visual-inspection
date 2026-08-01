@@ -8,7 +8,7 @@
   "source_test_file": "data/processed/visa_instructions/test.jsonl",
   "source_test_sha256": "275cbe86861b2c713660b2d3170ca85058d591abf1199c37a405fc6cd4ad95d6",
   "benchmark_file": "data/benchmarks/visa_baseline_v1/benchmark.jsonl",
-  "benchmark_sha256": "7ffc4e310abb2c87c926772e4bd45cd403663ffac402af3b0053b7e69d4c07ff",
+  "benchmark_sha256": "785928ea4775e0540e3851a1ce9900d0a34c49672404186635b35d64ecabb706",
   "sampling_policy": "deterministic_stratified_round_robin_with_unique_image_first_pass",
   "task_targets": {
     "binary_inspection": 400,
