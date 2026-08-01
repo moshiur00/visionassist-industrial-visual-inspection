@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Create a clean, upload-ready ZIP snapshot of the VisionAssist project.
+"""Create an upload-ready VisionAssist project snapshot.
 
 Run from the project root:
 
-    uv run python scripts/create_project_snapshot.py
+    uv run python scripts/create_project_snapshot.py --include-git-diff
 
-The archive is written to:
+The snapshot includes source code, configuration, tests, documentation,
+lightweight reports, benchmark artifacts, and lightweight baseline results.
+Large datasets, model weights, environments, caches, and raw prediction files
+remain excluded.
 
-    project_snapshots/visionassist_snapshot_<timestamp>.zip
+Useful options:
 
-The script includes source code, configuration, tests, documentation, and
-lightweight reports while excluding datasets, model artifacts, environments,
-caches, secrets, and other large/generated files.
+    --include-git-diff
+    --include-output-samples
+    --sample-lines 50
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 
-DEFAULT_EXCLUDED_DIR_NAMES = {
+EXCLUDED_DIR_NAMES = {
     ".git",
     ".idea",
     ".mypy_cache",
@@ -46,22 +49,17 @@ DEFAULT_EXCLUDED_DIR_NAMES = {
     "model_outputs",
     "models",
     "node_modules",
-    "outputs",
-    "project_snapshots",
     "wandb",
 }
 
-DEFAULT_EXCLUDED_FILE_NAMES = {
-    ".env",
-    ".env.local",
-    ".env.production",
+EXCLUDED_FILE_NAMES = {
     ".coverage",
     "coverage.xml",
     "Thumbs.db",
     "desktop.ini",
 }
 
-DEFAULT_EXCLUDED_SUFFIXES = {
+EXCLUDED_SUFFIXES = {
     ".7z",
     ".bin",
     ".ckpt",
@@ -85,23 +83,45 @@ DEFAULT_EXCLUDED_SUFFIXES = {
     ".zip",
 }
 
-# Raw/intermediate/processed datasets are deliberately excluded.
-DEFAULT_EXCLUDED_PATH_PREFIXES = {
+EXCLUDED_PATH_PREFIXES = {
     PurePosixPath("data/downloads"),
     PurePosixPath("data/raw"),
     PurePosixPath("data/interim"),
     PurePosixPath("data/processed"),
     PurePosixPath("data/splits"),
+    PurePosixPath("checkpoints"),
+    PurePosixPath("training_outputs"),
+    PurePosixPath("trainer_output"),
+    PurePosixPath("runs"),
+    PurePosixPath("project_snapshots"),
 }
 
-# These lightweight generated artifacts are useful for understanding the
-# current state and are therefore included when present.
+# Generated artifacts that are small and important for project understanding.
 INCLUDED_GENERATED_PREFIXES = {
+    PurePosixPath("data/benchmarks"),
     PurePosixPath("data/manifests"),
+    PurePosixPath("reports/baseline"),
     PurePosixPath("reports/dataset_audit"),
+    PurePosixPath("reports/training_readiness"),
 }
 
-TEXT_SECRET_MARKERS = (
+# Include only reproducibility-critical output files by default.
+INCLUDED_OUTPUT_NAMES = {
+    "metrics.json",
+    "run_manifest.json",
+    "per_task_metrics.csv",
+    "per_category_metrics.csv",
+}
+
+RAW_OUTPUT_NAMES = {
+    "predictions.jsonl",
+    "predictions.partial.jsonl",
+    "failures.jsonl",
+    "parsing_errors.jsonl",
+    "inference_errors.jsonl",
+}
+
+SECRET_MARKERS = (
     "api_key=",
     "apikey=",
     "secret_key=",
@@ -122,35 +142,43 @@ class SnapshotFile:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Create a clean ZIP snapshot of the current project."
+        description="Create a clean ZIP snapshot of VisionAssist."
     )
     parser.add_argument(
         "--project-root",
         type=Path,
         default=Path.cwd(),
-        help="Project root. Defaults to the current directory.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("project_snapshots"),
-        help="Directory in which to write the ZIP.",
     )
     parser.add_argument(
         "--name",
         default="visionassist_snapshot",
-        help="Base archive name.",
     )
     parser.add_argument(
         "--max-file-size-mb",
         type=float,
-        default=10.0,
-        help="Skip individual files larger than this size. Default: 10 MB.",
+        default=15.0,
     )
     parser.add_argument(
         "--include-git-diff",
         action="store_true",
-        help="Include git status and patch files in snapshot metadata.",
+    )
+    parser.add_argument(
+        "--include-output-samples",
+        action="store_true",
+        help=(
+            "Include bounded samples from raw baseline JSONL outputs under "
+            "_snapshot/output_samples/."
+        ),
+    )
+    parser.add_argument(
+        "--sample-lines",
+        type=int,
+        default=50,
     )
     return parser.parse_args()
 
@@ -174,62 +202,32 @@ def run_git(project_root: Path, *args: str) -> str | None:
     return result.stdout.strip()
 
 
-def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
-        while chunk := handle.read(chunk_size):
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
 
 
 def is_relative_to_any(
-    relative_path: PurePosixPath,
+    path: PurePosixPath,
     prefixes: Iterable[PurePosixPath],
 ) -> bool:
-    return any(
-        relative_path == prefix or prefix in relative_path.parents
-        for prefix in prefixes
-    )
+    return any(path == prefix or prefix in path.parents for prefix in prefixes)
 
 
-def should_exclude_path(
-    relative_path: PurePosixPath,
-    absolute_path: Path,
-    max_file_size_bytes: int,
-) -> tuple[bool, str | None]:
-    parts = set(relative_path.parts)
-
-    if parts.intersection(DEFAULT_EXCLUDED_DIR_NAMES):
-        return True, "excluded directory"
-
-    if relative_path.name in DEFAULT_EXCLUDED_FILE_NAMES:
-        return True, "excluded file"
-
-    lower_name = relative_path.name.lower()
-    if lower_name.startswith(".env"):
-        return True, "environment/secrets file"
-
-    if is_relative_to_any(relative_path, DEFAULT_EXCLUDED_PATH_PREFIXES):
-        if not is_relative_to_any(relative_path, INCLUDED_GENERATED_PREFIXES):
-            return True, "dataset/generated-data directory"
-
-    # Path.suffix does not recognize compound extensions such as .tar.gz.
-    if any(lower_name.endswith(suffix) for suffix in DEFAULT_EXCLUDED_SUFFIXES):
-        return True, "excluded binary/archive suffix"
-
-    try:
-        size = absolute_path.stat().st_size
-    except OSError:
-        return True, "unreadable file"
-
-    if size > max_file_size_bytes:
-        return True, f"larger than {max_file_size_bytes} bytes"
-
-    return False, None
+def is_allowed_output(relative_path: PurePosixPath) -> bool:
+    if not relative_path.parts or relative_path.parts[0] != "outputs":
+        return True
+    return relative_path.name in INCLUDED_OUTPUT_NAMES
 
 
 def looks_like_secret_file(path: Path) -> bool:
-    """Conservatively inspect small text files for obvious secret assignments."""
+    lower_name = path.name.lower()
+    if lower_name == ".env" or lower_name.startswith(".env."):
+        return True
+
     try:
         if path.stat().st_size > 1_000_000:
             return False
@@ -237,7 +235,44 @@ def looks_like_secret_file(path: Path) -> bool:
     except OSError:
         return False
 
-    return any(marker in text for marker in TEXT_SECRET_MARKERS)
+    return any(marker in text for marker in SECRET_MARKERS)
+
+
+def should_exclude(
+    relative_path: PurePosixPath,
+    absolute_path: Path,
+    max_file_size_bytes: int,
+) -> tuple[bool, str]:
+    if set(relative_path.parts).intersection(EXCLUDED_DIR_NAMES):
+        return True, "excluded directory"
+
+    if relative_path.name in EXCLUDED_FILE_NAMES:
+        return True, "excluded file"
+
+    if relative_path.parts and relative_path.parts[0] == "outputs":
+        if not is_allowed_output(relative_path):
+            return True, "raw or nonessential output"
+
+    if is_relative_to_any(relative_path, EXCLUDED_PATH_PREFIXES):
+        if not is_relative_to_any(relative_path, INCLUDED_GENERATED_PREFIXES):
+            return True, "large generated-data path"
+
+    lower_name = relative_path.name.lower()
+    if any(lower_name.endswith(suffix) for suffix in EXCLUDED_SUFFIXES):
+        return True, "excluded archive/binary suffix"
+
+    try:
+        size = absolute_path.stat().st_size
+    except OSError:
+        return True, "unreadable"
+
+    if size > max_file_size_bytes:
+        return True, "file exceeds size limit"
+
+    if looks_like_secret_file(absolute_path):
+        return True, "possible secret-bearing file"
+
+    return False, ""
 
 
 def collect_files(
@@ -248,52 +283,29 @@ def collect_files(
     skipped: list[dict[str, str]] = []
 
     for directory, dir_names, file_names in os.walk(project_root):
-        current_dir = Path(directory)
-
-        # Prevent traversal into excluded directories.
+        current = Path(directory)
         dir_names[:] = sorted(
-            name
-            for name in dir_names
-            if name not in DEFAULT_EXCLUDED_DIR_NAMES
+            name for name in dir_names if name not in EXCLUDED_DIR_NAMES
         )
 
         for file_name in sorted(file_names):
-            absolute_path = current_dir / file_name
-            relative_path = PurePosixPath(
-                absolute_path.relative_to(project_root).as_posix()
-            )
-
-            excluded, reason = should_exclude_path(
-                relative_path,
-                absolute_path,
+            absolute = current / file_name
+            relative = PurePosixPath(absolute.relative_to(project_root).as_posix())
+            excluded, reason = should_exclude(
+                relative,
+                absolute,
                 max_file_size_bytes,
             )
             if excluded:
-                skipped.append({"path": str(relative_path), "reason": reason or ""})
-                continue
-
-            # Never include the script's own output ZIP if output is inside root.
-            if relative_path.parts and relative_path.parts[0] == "project_snapshots":
-                skipped.append(
-                    {"path": str(relative_path), "reason": "snapshot output directory"}
-                )
-                continue
-
-            if looks_like_secret_file(absolute_path):
-                skipped.append(
-                    {
-                        "path": str(relative_path),
-                        "reason": "possible secret assignment detected",
-                    }
-                )
+                skipped.append({"path": str(relative), "reason": reason})
                 continue
 
             included.append(
                 SnapshotFile(
-                    absolute_path=absolute_path,
-                    archive_path=relative_path,
-                    size_bytes=absolute_path.stat().st_size,
-                    sha256=sha256_file(absolute_path),
+                    absolute_path=absolute,
+                    archive_path=relative,
+                    size_bytes=absolute.stat().st_size,
+                    sha256=sha256_file(absolute),
                 )
             )
 
@@ -302,25 +314,73 @@ def collect_files(
     return included, skipped
 
 
+def read_jsonl_sample(path: Path, line_limit: int) -> str:
+    lines: list[str] = []
+    with path.open("r", encoding="utf-8", errors="replace") as handle:
+        for index, line in enumerate(handle):
+            if index >= line_limit:
+                break
+            lines.append(line.rstrip("\n"))
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
+def add_output_samples(
+    archive: zipfile.ZipFile,
+    project_root: Path,
+    line_limit: int,
+) -> list[dict[str, object]]:
+    samples: list[dict[str, object]] = []
+
+    output_root = project_root / "outputs"
+    if not output_root.exists():
+        return samples
+
+    for path in sorted(output_root.rglob("*.jsonl")):
+        if path.name not in RAW_OUTPUT_NAMES:
+            continue
+
+        relative = path.relative_to(project_root)
+        sample_text = read_jsonl_sample(path, line_limit)
+        archive_path = (
+            PurePosixPath("_snapshot/output_samples")
+            / PurePosixPath(relative.as_posix())
+        )
+        archive.writestr(str(archive_path), sample_text)
+        samples.append(
+            {
+                "source": relative.as_posix(),
+                "sample_path": str(archive_path),
+                "sample_lines": len(sample_text.splitlines()),
+                "source_size_bytes": path.stat().st_size,
+                "source_sha256": sha256_file(path),
+            }
+        )
+
+    return samples
+
+
 def build_metadata(
     project_root: Path,
     files: list[SnapshotFile],
     skipped: list[dict[str, str]],
 ) -> dict[str, object]:
-    git_commit = run_git(project_root, "rev-parse", "HEAD")
-    git_branch = run_git(project_root, "branch", "--show-current")
-    git_status = run_git(project_root, "status", "--short")
-
     return {
-        "snapshot_schema_version": "1.0",
+        "snapshot_schema_version": "1.1",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "project_name": project_root.name,
         "python_version": sys.version,
         "platform": sys.platform,
         "git": {
-            "branch": git_branch,
-            "commit": git_commit,
-            "status": git_status,
+            "branch": run_git(project_root, "branch", "--show-current"),
+            "commit": run_git(project_root, "rev-parse", "HEAD"),
+            "status": run_git(project_root, "status", "--short"),
+            "latest_commit": run_git(
+                project_root,
+                "log",
+                "-1",
+                "--pretty=format:%H%n%an%n%ad%n%s",
+                "--date=iso-strict",
+            ),
         },
         "summary": {
             "included_file_count": len(files),
@@ -339,108 +399,83 @@ def build_metadata(
     }
 
 
-def create_snapshot(
-    project_root: Path,
-    output_dir: Path,
-    base_name: str,
-    max_file_size_mb: float,
-    include_git_diff: bool,
-) -> Path:
-    project_root = project_root.resolve()
-    if not project_root.is_dir():
-        raise FileNotFoundError(f"Project root does not exist: {project_root}")
+def create_snapshot(args: argparse.Namespace) -> Path:
+    root = args.project_root.resolve()
+    if not (root / "pyproject.toml").is_file() or not (root / "src").is_dir():
+        raise RuntimeError("Run this script from the VisionAssist project root.")
 
-    # A lightweight sanity check to avoid zipping the wrong directory.
-    expected_markers = ("pyproject.toml", "src")
-    missing = [name for name in expected_markers if not (project_root / name).exists()]
-    if missing:
-        raise RuntimeError(
-            "This does not look like the project root. "
-            f"Missing: {', '.join(missing)}"
-        )
-
+    output_dir = args.output_dir
     if not output_dir.is_absolute():
-        output_dir = project_root / output_dir
+        output_dir = root / output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    archive_path = output_dir / f"{base_name}_{timestamp}.zip"
-    max_file_size_bytes = int(max_file_size_mb * 1024 * 1024)
+    archive_path = output_dir / f"{args.name}_{timestamp}.zip"
 
-    files, skipped = collect_files(project_root, max_file_size_bytes)
-    metadata = build_metadata(project_root, files, skipped)
+    files, skipped = collect_files(
+        root,
+        int(args.max_file_size_mb * 1024 * 1024),
+    )
+    metadata = build_metadata(root, files, skipped)
 
-    compression = zipfile.ZIP_DEFLATED
     with zipfile.ZipFile(
         archive_path,
-        mode="w",
-        compression=compression,
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
         compresslevel=9,
     ) as archive:
         for item in files:
-            archive.write(item.absolute_path, arcname=str(item.archive_path))
+            archive.write(item.absolute_path, str(item.archive_path))
+
+        samples: list[dict[str, object]] = []
+        if args.include_output_samples:
+            samples = add_output_samples(
+                archive,
+                root,
+                max(1, args.sample_lines),
+            )
+        metadata["output_samples"] = samples
+
+        if args.include_git_diff:
+            for name, git_args in (
+                ("git_status.txt", ("status", "--short")),
+                ("git_diff.patch", ("diff", "--binary")),
+                ("git_staged_diff.patch", ("diff", "--cached", "--binary")),
+            ):
+                content = run_git(root, *git_args)
+                if content is not None:
+                    archive.writestr(f"_snapshot/{name}", content + "\n")
 
         archive.writestr(
             "_snapshot/manifest.json",
             json.dumps(metadata, indent=2, ensure_ascii=False),
         )
-
         archive.writestr(
             "_snapshot/README.txt",
             (
                 "VisionAssist project snapshot\n"
-                "================================\n\n"
-                "This archive contains project source code, configuration, tests,\n"
-                "documentation, manifests, and lightweight reports.\n\n"
-                "Excluded intentionally:\n"
-                "- .env and probable secret-bearing files\n"
-                "- virtual environments and caches\n"
-                "- raw/intermediate/processed datasets\n"
-                "- model weights and training outputs\n"
-                "- Git internals\n"
-                "- other archives and large binary files\n\n"
-                "See _snapshot/manifest.json for the complete included/skipped list.\n"
+                "=============================\n\n"
+                "Includes code, configs, tests, docs, benchmark artifacts, "
+                "reports, and lightweight baseline metrics/manifests.\n"
+                "Raw data, model weights, checkpoints, and complete prediction "
+                "JSONL files are excluded.\n"
             ),
         )
-
-        if include_git_diff:
-            status = run_git(project_root, "status", "--short")
-            diff = run_git(project_root, "diff", "--binary")
-            staged_diff = run_git(project_root, "diff", "--cached", "--binary")
-
-            if status is not None:
-                archive.writestr("_snapshot/git_status.txt", status + "\n")
-            if diff is not None:
-                archive.writestr("_snapshot/git_diff.patch", diff + "\n")
-            if staged_diff is not None:
-                archive.writestr(
-                    "_snapshot/git_staged_diff.patch",
-                    staged_diff + "\n",
-                )
 
     return archive_path
 
 
 def main() -> int:
     args = parse_args()
-
     try:
-        archive_path = create_snapshot(
-            project_root=args.project_root,
-            output_dir=args.output_dir,
-            base_name=args.name,
-            max_file_size_mb=args.max_file_size_mb,
-            include_git_diff=args.include_git_diff,
-        )
-    except (FileNotFoundError, RuntimeError, OSError) as exc:
+        archive_path = create_snapshot(args)
+    except (OSError, RuntimeError, ValueError) as exc:
         print(f"Snapshot failed: {exc}", file=sys.stderr)
         return 1
 
-    size_mb = archive_path.stat().st_size / (1024 * 1024)
     print("Project snapshot created successfully.")
     print(f"Archive: {archive_path}")
-    print(f"Size: {size_mb:.2f} MB")
-    print("Upload this ZIP in the chat to synchronize the project code.")
+    print(f"Size: {archive_path.stat().st_size / (1024 * 1024):.2f} MiB")
     return 0
 
 

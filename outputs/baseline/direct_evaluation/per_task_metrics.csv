@@ -1,0 +1,6 @@
+appropriate_abstention_accuracy,condition_accuracy,count,defect_f1,exact_match,f1,field_completeness,json_valid_rate,location_accuracy,mean_fact_coverage,precision,product_accuracy,recall,schema_valid_rate,severity_accuracy,task_family,unsupported_field_rate,unsupported_root_cause_rate,unsupported_safety_claim_rate
+,,300.0,,0.0,0.0,,,,,0.0,,0.0,,,defect_identification,,,
+,,200,,,,,,,0.4725,,,,,,evidence_explanation,,0.0,0.0
+,0.0,300,0.38666666666666666,,,0.13142857142857142,0.9066666666666666,0.4066666666666667,,,0.10333333333333333,,0.0,0.03333333333333333,structured_report,0.9066666666666666,,
+,,150,,,,,,,0.49833333333333335,,,,,,technician_note,,0.0,0.0
+0.74,,150,,,,,,,,,,,,,uncertainty,,0.0,0.006666666666666667

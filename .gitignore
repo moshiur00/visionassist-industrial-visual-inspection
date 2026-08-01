@@ -152,3 +152,25 @@ configs/**/*.private.yml
 # Frozen benchmark files under data/benchmarks/ are intentionally tracked.
 reports/baseline/**
 !reports/baseline/.gitkeep
+
+
+# Ignore generated outputs by default
+outputs/**
+
+# Re-include the baseline directory structure
+!outputs/
+!outputs/baseline/
+!outputs/baseline/**/
+
+# Keep lightweight baseline reports
+!outputs/baseline/**/run_manifest.json
+!outputs/baseline/**/metrics.json
+!outputs/baseline/**/*_metrics.csv
+!outputs/baseline/**/.gitkeep
+
+# Keep raw baseline artifacts ignored
+outputs/baseline/**/predictions.partial.jsonl
+outputs/baseline/**/predictions.jsonl
+outputs/baseline/**/failures.jsonl
+outputs/baseline/**/parsing_errors.jsonl
+outputs/baseline/**/inference_errors.jsonl
