@@ -8,6 +8,9 @@ import typer
 from rich.console import Console
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TransferSpeedColumn
 
+from visionassist.benchmarks.build_visa_baseline import build_visa_baseline
+from visionassist.benchmarks.schemas import load_benchmark_config
+from visionassist.benchmarks.validate_benchmark import validate_baseline_benchmark
 from visionassist.data.audit_visa import audit_visa
 from visionassist.data.config import load_visa_config
 from visionassist.data.phase1 import run_phase1
@@ -16,6 +19,12 @@ from visionassist.data.phase3 import run_phase3
 from visionassist.data.phase4 import run_phase4
 from visionassist.data.phase5 import run_phase5
 from visionassist.data.phase6 import run_phase6
+from visionassist.evaluation.task_metrics import (
+    evaluate_baseline_predictions,
+    load_evaluation_config,
+)
+from visionassist.inference.generate import run_baseline_inference
+from visionassist.inference.schemas import load_inference_config
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 console = Console()
@@ -23,6 +32,152 @@ console = Console()
 
 def _config_option() -> Path:
     return Path("configs/data/visa.yaml")
+
+
+def _benchmark_config_option() -> Path:
+    return Path("configs/benchmark/visa_baseline_v1.yaml")
+
+
+def _evaluation_config_option() -> Path:
+    return Path("configs/evaluation/visa_baseline.yaml")
+
+
+def _inference_config_option() -> Path:
+    return Path("configs/inference/qwen25vl3b_direct.yaml")
+
+
+@app.command("build-baseline-benchmark")
+def build_baseline_benchmark_command(
+    config: Path = typer.Option(
+        _benchmark_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Build and freeze the deterministic Phase 7A benchmark."""
+
+    result = build_visa_baseline(load_benchmark_config(config))
+    console.print("[bold green]Phase 7A benchmark built successfully.[/bold green]")
+    console.print(f"Benchmark: {result.benchmark_name}")
+    console.print(f"Records: {result.records}")
+    console.print(f"SHA-256: {result.benchmark_sha256}")
+    console.print(f"Benchmark file: {result.benchmark_path}")
+    console.print(f"Manifest: {result.manifest_path}")
+    console.print(f"Distribution: {result.distribution_path}")
+
+
+@app.command("validate-baseline-benchmark")
+def validate_baseline_benchmark_command(
+    config: Path = typer.Option(
+        _benchmark_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Validate the frozen Phase 7A benchmark and its images."""
+
+    result = validate_baseline_benchmark(
+        load_benchmark_config(config), project_root=project_root
+    )
+    console.print("[bold green]Phase 7A benchmark validation passed.[/bold green]")
+    console.print(f"Records: {result.records}")
+    console.print(f"Unique images: {result.unique_images}")
+    console.print(f"Errors: {result.errors}")
+    console.print(f"Warnings: {result.warnings}")
+    console.print(f"Validation report: {result.report_path}")
+    console.print(f"Statistics: {result.statistics_path}")
+    console.print(f"Error report: {result.error_path}")
+
+
+@app.command("evaluate-baseline")
+def evaluate_baseline_command(
+    benchmark: Path = typer.Option(
+        Path("data/benchmarks/visa_baseline_v1/benchmark.jsonl"),
+        "--benchmark",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    predictions: Path = typer.Option(
+        ...,
+        "--predictions",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    config: Path = typer.Option(
+        _evaluation_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Evaluate baseline predictions with deterministic Phase 7B metrics."""
+
+    result = evaluate_baseline_predictions(
+        benchmark, predictions, load_evaluation_config(config)
+    )
+    console.print("[bold green]Phase 7B evaluation completed.[/bold green]")
+    console.print(f"Benchmark records: {result.benchmark_records}")
+    console.print(f"Predictions: {result.predictions}")
+    console.print(f"Failure records: {result.failures}")
+    console.print(f"Metrics: {result.metrics_path}")
+    console.print(f"Per-task metrics: {result.per_task_path}")
+    console.print(f"Per-category metrics: {result.per_category_path}")
+    console.print(f"Failures: {result.failures_path}")
+
+
+
+
+@app.command("baseline-inference")
+def baseline_inference_command(
+    config: Path = typer.Option(
+        _inference_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Run resumable Phase 7C untouched-model inference."""
+
+    result = run_baseline_inference(
+        load_inference_config(config), project_root=project_root
+    )
+    status = "completed" if result.complete else "paused"
+    console.print(f"[bold green]Phase 7C inference {status}.[/bold green]")
+    console.print(f"Run ID: {result.run_id}")
+    console.print(f"Benchmark records: {result.benchmark_records}")
+    console.print(f"Completed predictions: {result.completed_predictions}")
+    console.print(f"New predictions this run: {result.new_predictions}")
+    console.print(f"Errors this run: {result.errors}")
+    console.print(f"Partial predictions: {result.partial_predictions_path}")
+    if result.predictions_path is not None:
+        console.print(f"Final predictions: {result.predictions_path}")
+    console.print(f"Run manifest: {result.manifest_path}")
 
 
 @app.command("phase1-visa")

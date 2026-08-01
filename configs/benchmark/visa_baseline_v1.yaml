@@ -1,0 +1,28 @@
+benchmark_name: visa_baseline_v1
+schema_version: "1.0"
+source_test_path: data/processed/visa_instructions/test.jsonl
+output_root: data/benchmarks/visa_baseline_v1
+benchmark_path: data/benchmarks/visa_baseline_v1/benchmark.jsonl
+manifest_path: data/benchmarks/visa_baseline_v1/benchmark_manifest.json
+distribution_path: data/benchmarks/visa_baseline_v1/benchmark_distribution.json
+sha256_path: data/benchmarks/visa_baseline_v1/benchmark_sha256.txt
+report_root: reports/baseline
+validation_report_path: reports/baseline/visa_baseline_v1_validation.json
+validation_error_path: reports/baseline/visa_baseline_v1_errors.jsonl
+statistics_path: reports/baseline/visa_baseline_v1_statistics.json
+seed: 42
+strict: true
+verify_images: true
+allowed_image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+task_targets:
+  binary_inspection: 400
+  product_identification: 300
+  defect_identification: 300
+  localization: 300
+  evidence_explanation: 200
+  structured_report: 300
+  technician_note: 150
+  uncertainty: 150

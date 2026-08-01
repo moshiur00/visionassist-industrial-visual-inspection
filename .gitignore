@@ -147,3 +147,8 @@ configs/**/*.private.yml
 
 # Documentation under docs/ is intentionally tracked, including:
 # docs/VISIONASSIST_DEVELOPMENT_RECORD.md
+
+# Generated baseline validation reports
+# Frozen benchmark files under data/benchmarks/ are intentionally tracked.
+reports/baseline/**
+!reports/baseline/.gitkeep
