@@ -104,6 +104,18 @@ def validate_one_batch(
     """Load the model and prove one collated batch has a finite loss."""
 
     hardware = inspect_hardware(config.output_dir)
+
+    try:
+        import gc
+        import torch
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats()
+    except ImportError:
+        torch = None
+
     build = build_qlora_model(config, hardware)
     train, validation = _datasets(config)
     write_experiment_files(
@@ -125,17 +137,54 @@ def validate_one_batch(
     batch = collator([train[index] for index in range(count)])
     device = next(build.model.parameters()).device
     batch = {key: value.to(device) if hasattr(value, "to") else value for key, value in batch.items()}
+    build.model.train()
     output = build.model(**batch)
-    loss = float(output.loss.detach().cpu())
+    loss_tensor = output.loss
+    loss = float(loss_tensor.detach().cpu())
     if not (loss >= 0.0 and loss < float("inf")):
         raise RuntimeError(f"Non-finite smoke-test loss: {loss}")
+
+    # Validate the real training path, not only inference-like forward memory.
+    loss_tensor.backward()
+    gradient_tensors = [
+        parameter.grad
+        for parameter in build.model.parameters()
+        if parameter.requires_grad and parameter.grad is not None
+    ]
+    if not gradient_tensors:
+        raise RuntimeError("No LoRA gradients were produced by the smoke test.")
+
+    finite_gradients = all(bool(gradient.isfinite().all()) for gradient in gradient_tensors)
+    nonzero_gradients = any(bool(gradient.detach().abs().sum() > 0) for gradient in gradient_tensors)
+    if not finite_gradients:
+        raise RuntimeError("Non-finite LoRA gradients were produced.")
+    if not nonzero_gradients:
+        raise RuntimeError("All LoRA gradients are zero.")
+
+    peak_allocated_gib = 0.0
+    peak_reserved_gib = 0.0
+    if torch is not None and torch.cuda.is_available():
+        peak_allocated_gib = torch.cuda.max_memory_allocated() / (1024**3)
+        peak_reserved_gib = torch.cuda.max_memory_reserved() / (1024**3)
+
+    build.model.zero_grad(set_to_none=True)
     result = {
         "run_id": config.run_id,
         "hardware_profile": select_profile(hardware),
         "loss": loss,
         "batch_shape": list(batch["input_ids"].shape),
+        "sequence_length": int(batch["input_ids"].shape[-1]),
+        "image_min_pixels": config.data.image_min_pixels,
+        "image_max_pixels": config.data.image_max_pixels,
         "trainable_parameters": build.trainable_parameters,
         "total_parameters": build.total_parameters,
+        "gradient_tensor_count": len(gradient_tensors),
+        "finite_gradients": finite_gradients,
+        "nonzero_gradients": nonzero_gradients,
+        "peak_allocated_vram_gib": round(peak_allocated_gib, 3),
+        "peak_reserved_vram_gib": round(peak_reserved_gib, 3),
+        "forward_passed": True,
+        "backward_passed": True,
         "passed": True,
     }
     path = config.output_dir / "one_batch_smoke_test.json"
