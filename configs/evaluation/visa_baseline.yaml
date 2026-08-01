@@ -1,0 +1,15 @@
+output_root: outputs/baseline/evaluation
+metrics_path: outputs/baseline/evaluation/metrics.json
+per_task_path: outputs/baseline/evaluation/per_task_metrics.csv
+per_category_path: outputs/baseline/evaluation/per_category_metrics.csv
+failures_path: outputs/baseline/evaluation/failures.jsonl
+parsing_errors_path: outputs/baseline/evaluation/parsing_errors.jsonl
+strict_prediction_coverage: true
+required_structured_fields:
+  - product
+  - condition
+  - defect_type
+  - location
+  - visual_severity
+  - recommended_action
+  - safety_note

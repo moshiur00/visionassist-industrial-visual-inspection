@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "record_count": 2100,
+  "unique_images": 591,
+  "task_family_counts": {
+    "binary_inspection": 400,
+    "defect_identification": 300,
+    "evidence_explanation": 200,
+    "localization": 300,
+    "product_identification": 300,
+    "structured_report": 300,
+    "technician_note": 150,
+    "uncertainty": 150
+  },
+  "category_counts": {
+    "candle": 198,
+    "capsules": 179,
+    "cashew": 172,
+    "chewinggum": 178,
+    "fryum": 168,
+    "macaroni1": 201,
+    "macaroni2": 194,
+    "pcb1": 153,
+    "pcb2": 148,
+    "pcb3": 161,
+    "pcb4": 181,
+    "pipe_fryum": 167
+  },
+  "condition_counts": {
+    "anomalous": 1638,
+    "normal": 462
+  },
+  "severity_counts": {
+    "major": 310,
+    "minor": 1198,
+    "moderate": 130,
+    "none": 462
+  },
+  "location_counts": {
+    "bottom_center": 121,
+    "bottom_left": 55,
+    "bottom_right": 92,
+    "center": 786,
+    "center_left": 208,
+    "center_right": 159,
+    "none": 462,
+    "top_center": 116,
+    "top_left": 57,
+    "top_right": 44
+  },
+  "defect_counts": {
+    "bubble": 74,
+    "bubble,discolor,scratch,leak,misshape": 67,
+    "burnt": 20,
+    "chip_around_edge_and_corner": 35,
+    "chunk_of_gum_missing": 34,
+    "chunk_of_gum_missing,small_cracks": 32,
+    "chunk_of_wax_missing": 11,
+    "color_spot_similar_to_the_object": 82,
+    "corner_and_edge_breakage": 18,
+    "corner_missing": 10,
+    "corner_or_edge_breakage": 32,
+    "damaged_corner_of_packaging": 73,
+    "different_colour_spot": 86,
+    "extra": 34,
+    "extra,dirt": 10,
+    "foreign_particals_on_candle": 12,
+    "fryum_stuck_together": 52,
+    "melt": 346,
+    "middle_breakage": 56,
+    "missing": 88,
+    "none": 462,
+    "similar_colour_spot": 187,
+    "small_chip_around_edge": 53,
+    "small_holes": 64,
+    "small_scratches": 130,
+    "wax_melded_out_of_the_candle": 22,
+    "wrong_place,dirt": 10
+  }
+}
