@@ -5,34 +5,33 @@ processor_revision: null
 output_dir: outputs/training/qwen25vl3b_qlora_overfit_v1
 seed: 42
 trust_remote_code: false
-attention_implementation: auto
+attention_implementation: sdpa
 hardware_profile: auto
-
 quantization:
   enabled: true
   load_in_4bit: true
   quant_type: nf4
   double_quant: true
   compute_dtype: auto
-
 lora:
-  rank: 16
-  alpha: 32
+  rank: 8
+  alpha: 16
   dropout: 0.05
   bias: none
-  target_suffixes: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  target_suffixes:
+  - q_proj
+  - v_proj
+  - o_proj
   train_multimodal_projector: false
-
 data:
   train_path: data/processed/visa_instructions/train.jsonl
   validation_path: data/processed/visa_instructions/validation.jsonl
-  max_sequence_length: 4096
-  image_min_pixels: null
-  image_max_pixels: null
+  max_sequence_length: 2048
+  image_min_pixels: 100352
+  image_max_pixels: 200704
   train_limit: 32
   validation_limit: 32
   subset_seed: 42
-
 training:
   max_steps: 100
   num_train_epochs: 1.0
@@ -53,7 +52,6 @@ training:
   lr_scheduler_type: cosine
   report_to: []
   tf32: true
-
 checkpoints:
   resume: latest
   keep_latest: 2

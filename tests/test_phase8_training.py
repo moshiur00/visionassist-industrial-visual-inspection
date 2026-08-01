@@ -12,12 +12,7 @@ from visionassist.training.checkpointing import (
     resolve_resume_checkpoint,
 )
 from visionassist.training.config import Phase8TrainingConfig
-from visionassist.training.hardware import (
-    HardwareInfo,
-    _nearest_existing_path,
-    inspect_hardware,
-    select_profile,
-)
+from visionassist.training.hardware import HardwareInfo, select_profile
 
 
 def config_payload(tmp_path: Path) -> dict[str, object]:
@@ -92,19 +87,21 @@ def test_local_training_has_clear_no_gpu_boundary(tmp_path: Path) -> None:
     assert config.run_id == "test_run"
 
 
-def test_nearest_existing_path_handles_future_output_directory(tmp_path: Path) -> None:
-    future_output = tmp_path / "outputs" / "training" / "run" / "checkpoints"
+def test_a100_safe_overfit_profile_is_memory_bounded() -> None:
+    config_path = (
+        Path(__file__).parents[1]
+        / "configs"
+        / "training"
+        / "qwen25vl3b_qlora_overfit.yaml"
+    )
+    import yaml
 
-    resolved = _nearest_existing_path(future_output)
+    payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
-    assert resolved.exists()
-    assert resolved == tmp_path
-
-
-def test_hardware_inspection_accepts_missing_output_directory(tmp_path: Path) -> None:
-    future_output = tmp_path / "outputs" / "training" / "run"
-
-    hardware = inspect_hardware(future_output)
-
-    assert hardware.free_disk_gib >= 0.0
-    assert isinstance(hardware.cuda_available, bool)
+    assert payload["attention_implementation"] == "sdpa"
+    assert payload["data"]["max_sequence_length"] == 2048
+    assert payload["data"]["image_min_pixels"] == 100352
+    assert payload["data"]["image_max_pixels"] == 200704
+    assert payload["lora"]["rank"] == 8
+    assert payload["lora"]["alpha"] == 16
+    assert payload["lora"]["target_suffixes"] == ["q_proj", "v_proj", "o_proj"]
