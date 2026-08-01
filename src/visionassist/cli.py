@@ -373,3 +373,113 @@ def audit_visa_command(
 
 if __name__ == "__main__":
     app()
+
+
+def _training_config_option() -> Path:
+    return Path("configs/training/qwen25vl3b_qlora_overfit.yaml")
+
+
+@app.command("training-environment")
+def training_environment_command(
+    config: Path = typer.Option(
+        _training_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Inspect hardware and validate a Phase 8 training configuration."""
+
+    from visionassist.training.config import load_training_config
+    from visionassist.training.hardware import inspect_hardware, select_profile
+
+    training_config = load_training_config(config)
+    hardware = inspect_hardware(training_config.output_dir)
+    profile = select_profile(hardware)
+    console.print("[bold green]Phase 8 environment inspection completed.[/bold green]")
+    console.print(f"Run ID: {training_config.run_id}")
+    console.print(f"CUDA available: {hardware.cuda_available}")
+    console.print(f"GPU: {hardware.gpu_name or 'none'}")
+    console.print(f"VRAM: {hardware.total_vram_gib:.2f} GiB")
+    console.print(f"BF16 supported: {hardware.bf16_supported}")
+    console.print(f"Selected profile: {profile}")
+    if not hardware.cuda_available:
+        console.print(
+            "[yellow]No local GPU detected. Configuration/tests are available locally; "
+            "run smoke training and QLoRA in Google Colab Pro.[/yellow]"
+        )
+
+
+@app.command("training-smoke-test")
+def training_smoke_test_command(
+    config: Path = typer.Option(
+        _training_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Run the Phase 8 one-batch QLoRA forward-pass validation."""
+
+    from visionassist.training.config import load_training_config
+    from visionassist.training.train import validate_one_batch
+
+    result = validate_one_batch(
+        load_training_config(config), project_root=project_root.resolve()
+    )
+    console.print("[bold green]Phase 8 one-batch smoke test passed.[/bold green]")
+    console.print(f"Loss: {result['loss']}")
+    console.print(f"Batch shape: {result['batch_shape']}")
+    console.print(f"Trainable parameters: {result['trainable_parameters']}")
+
+
+@app.command("train-qlora")
+def train_qlora_command(
+    config: Path = typer.Option(
+        _training_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    resume: str | None = typer.Option(
+        None,
+        "--resume",
+        help="Override config with none, latest, best, or an explicit checkpoint path.",
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Run resumable Phase 8 QLoRA training with bounded checkpoints."""
+
+    from visionassist.training.config import load_training_config
+    from visionassist.training.train import run_qlora_training
+
+    result = run_qlora_training(
+        load_training_config(config),
+        project_root=project_root.resolve(),
+        resume_override=resume,
+    )
+    console.print("[bold green]Phase 8 QLoRA run completed.[/bold green]")
+    console.print(f"Run ID: {result.run_id}")
+    console.print(f"Global step: {result.global_step}")
+    console.print(f"Resumed from: {result.resumed_from or 'none'}")
+    console.print(f"Best checkpoint: {result.best_checkpoint or 'none'}")
+    console.print(f"Final adapter: {result.final_adapter}")
