@@ -19,6 +19,7 @@ from visionassist.data.phase3 import run_phase3
 from visionassist.data.phase4 import run_phase4
 from visionassist.data.phase5 import run_phase5
 from visionassist.data.phase6 import run_phase6
+from visionassist.evaluation.adapter import run_adapter_evaluation
 from visionassist.evaluation.task_metrics import (
     evaluate_baseline_predictions,
     load_evaluation_config,
@@ -44,6 +45,10 @@ def _evaluation_config_option() -> Path:
 
 def _inference_config_option() -> Path:
     return Path("configs/inference/qwen25vl3b_direct.yaml")
+
+
+def _adapter_evaluation_config_option() -> Path:
+    return Path("configs/inference/qwen25vl3b_overfit_checkpoint50_validation.yaml")
 
 
 @app.command("build-baseline-benchmark")
@@ -178,6 +183,39 @@ def baseline_inference_command(
     if result.predictions_path is not None:
         console.print(f"Final predictions: {result.predictions_path}")
     console.print(f"Run manifest: {result.manifest_path}")
+
+
+@app.command("evaluate-adapter")
+def evaluate_adapter_command(
+    config: Path = typer.Option(
+        _adapter_evaluation_config_option(),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Run resumable adapter inference and task-specific evaluation."""
+
+    result = run_adapter_evaluation(
+        load_inference_config(config), project_root=project_root
+    )
+    console.print(
+        "[bold green]Post-training adapter evaluation completed.[/bold green]"
+    )
+    console.print(f"Records: {result.inference.benchmark_records}")
+    console.print(f"Predictions: {result.inference.completed_predictions}")
+    console.print(f"Failures: {result.evaluation.failures}")
+    console.print(f"Summary: {result.summary_path}")
+    console.print(f"Metrics: {result.evaluation.metrics_path}")
 
 
 @app.command("phase1-visa")
