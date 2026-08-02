@@ -30,6 +30,8 @@ from visionassist.training.formatting import (
     resolve_image_path,
     user_prompt,
 )
+from visionassist.training.dataset import VisionAssistJsonlDataset
+from visionassist.training.experiment import subset_dataset
 
 
 @dataclass(frozen=True)
@@ -51,7 +53,8 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _load_benchmark(path: Path) -> list[InstructionRecord]:
+def _load_benchmark(config: InferenceConfig) -> list[InstructionRecord]:
+    path = config.benchmark_path
     if not path.is_file():
         raise FileNotFoundError(f"Frozen benchmark not found: {path}")
     records: list[InstructionRecord] = []
@@ -63,9 +66,21 @@ def _load_benchmark(path: Path) -> list[InstructionRecord]:
                 record = InstructionRecord.model_validate_json(line)
             except Exception as exc:
                 raise ValueError(f"Invalid benchmark row {path}:{line_number}: {exc}") from exc
-            if record.dataset_split.value != "test":
-                raise ValueError(f"Non-test benchmark record: {record.instruction_id}")
             records.append(record)
+    wrong_split = [
+        record.instruction_id
+        for record in records
+        if record.dataset_split.value != config.expected_dataset_split
+    ]
+    if wrong_split:
+        raise ValueError(
+            f"Expected {config.expected_dataset_split} records; first mismatch: "
+            f"{wrong_split[0]}"
+        )
+    if config.subset_limit is not None:
+        dataset = VisionAssistJsonlDataset(path)
+        subset = subset_dataset(dataset, config.subset_limit, config.subset_seed)
+        records = [subset[index] for index in range(len(subset))]
     identifiers = [record.instruction_id for record in records]
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("Frozen benchmark contains duplicate instruction IDs.")
@@ -76,14 +91,23 @@ def _manifest_benchmark_hash(config: InferenceConfig) -> str | None:
     if not config.benchmark_manifest_path.is_file():
         return None
     payload = json.loads(config.benchmark_manifest_path.read_text(encoding="utf-8"))
-    value = payload.get("benchmark_sha256")
+    key = {
+        "train": "train_sha256",
+        "validation": "validation_sha256",
+        "test": "benchmark_sha256",
+    }[config.expected_dataset_split]
+    value = payload.get(key)
     return value if isinstance(value, str) else None
 
 
 def _verify_frozen_benchmark(config: InferenceConfig) -> str:
     actual = sha256_file(config.benchmark_path)
     expected = _manifest_benchmark_hash(config)
-    if expected is not None and actual != expected:
+    if (
+        expected is not None
+        and actual != expected
+        and not config.allow_path_normalized_hash_mismatch
+    ):
         raise RuntimeError(
             "Frozen benchmark hash differs from its manifest. Revalidate Phase 7A."
         )
@@ -227,6 +251,12 @@ def _initial_manifest(
     records: int,
     loaded: LoadedInferenceModel,
 ) -> dict[str, Any]:
+    adapter_files: dict[str, str] = {}
+    if config.adapter_path is not None and config.adapter_path.is_dir():
+        for name in ("adapter_config.json", "adapter_model.safetensors"):
+            path = config.adapter_path / name
+            if path.is_file():
+                adapter_files[name] = sha256_file(path)
     return {
         "schema_version": "1.0",
         "run_id": config.run_id,
@@ -242,6 +272,19 @@ def _initial_manifest(
         "precision_requested": config.precision,
         "precision_resolved": loaded.resolved_precision,
         "load_in_4bit": loaded.quantized_4bit,
+        "adapter_path": loaded.adapter_path,
+        "adapter_checkpoint": (
+            config.adapter_path.as_posix() if config.adapter_path else None
+        ),
+        "adapter_file_sha256": adapter_files,
+        "expected_dataset_split": config.expected_dataset_split,
+        "subset_limit": config.subset_limit,
+        "subset_seed": config.subset_seed,
+        "source_hash_path_normalization_override": (
+            config.allow_path_normalized_hash_mismatch
+        ),
+        "image_min_pixels": config.image_min_pixels,
+        "image_max_pixels": config.image_max_pixels,
         "device_map": config.device_map,
         "attention_implementation": config.attention_implementation,
         "generation_config": config.generation.model_dump(),
@@ -277,9 +320,14 @@ def run_baseline_inference(
 
     project_root = project_root.resolve()
     benchmark_hash = _verify_frozen_benchmark(config)
-    records = _load_benchmark(config.benchmark_path)
+    records = _load_benchmark(config)
     benchmark_ids = [record.instruction_id for record in records]
     config.output_dir.mkdir(parents=True, exist_ok=True)
+    if config.evaluation_records_path is not None:
+        write_jsonl_atomic(
+            config.evaluation_records_path,
+            [record.model_dump(mode="json") for record in records],
+        )
 
     if config.overwrite:
         for path in (

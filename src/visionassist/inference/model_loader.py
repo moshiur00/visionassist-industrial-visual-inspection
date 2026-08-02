@@ -16,6 +16,7 @@ class LoadedInferenceModel:
     processor: Any
     resolved_precision: str
     quantized_4bit: bool
+    adapter_path: str | None = None
 
 
 def _resolve_dtype(config: InferenceConfig, torch: Any) -> tuple[Any, str]:
@@ -44,11 +45,15 @@ def load_qwen25vl(config: InferenceConfig) -> LoadedInferenceModel:
         ) from exc
 
     dtype, resolved_precision = _resolve_dtype(config, torch)
-    processor = AutoProcessor.from_pretrained(
-        config.model_id,
-        revision=config.processor_revision or config.model_revision,
-        trust_remote_code=config.trust_remote_code,
-    )
+    processor_kwargs: dict[str, Any] = {
+        "revision": config.processor_revision or config.model_revision,
+        "trust_remote_code": config.trust_remote_code,
+    }
+    if config.image_min_pixels is not None:
+        processor_kwargs["min_pixels"] = config.image_min_pixels
+    if config.image_max_pixels is not None:
+        processor_kwargs["max_pixels"] = config.image_max_pixels
+    processor = AutoProcessor.from_pretrained(config.model_id, **processor_kwargs)
 
     model_kwargs: dict[str, Any] = {
         "revision": config.model_revision,
@@ -75,10 +80,23 @@ def load_qwen25vl(config: InferenceConfig) -> LoadedInferenceModel:
         config.model_id,
         **model_kwargs,
     )
+    if config.adapter_path is not None:
+        if not config.adapter_path.is_dir():
+            raise FileNotFoundError(
+                f"Adapter checkpoint not found: {config.adapter_path}"
+            )
+        try:
+            from peft import PeftModel
+        except ImportError as exc:
+            raise RuntimeError("Adapter inference requires PEFT.") from exc
+        model = PeftModel.from_pretrained(
+            model, config.adapter_path, is_trainable=False
+        )
     model.eval()
     return LoadedInferenceModel(
         model=model,
         processor=processor,
         resolved_precision=resolved_precision,
         quantized_4bit=config.load_in_4bit,
+        adapter_path=str(config.adapter_path) if config.adapter_path else None,
     )

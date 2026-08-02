@@ -8,6 +8,7 @@ import torch
 from PIL import Image
 
 from visionassist.benchmarks.build_visa_baseline import sha256_file
+from visionassist.evaluation.adapter import run_adapter_evaluation
 from visionassist.inference.generate import run_baseline_inference
 from visionassist.inference.model_loader import LoadedInferenceModel
 from visionassist.inference.resume import completed_instruction_ids, read_jsonl
@@ -148,3 +149,50 @@ def test_frozen_benchmark_hash_is_enforced(tmp_path: Path) -> None:
         assert "hash differs" in str(exc)
     else:
         raise AssertionError("Expected a frozen benchmark hash failure")
+
+
+def test_adapter_evaluation_uses_exact_deterministic_subset(tmp_path: Path) -> None:
+    image = tmp_path / "image.jpg"
+    Image.new("RGB", (8, 8)).save(image)
+    dataset = tmp_path / "train.jsonl"
+    rows = [
+        _instruction(f"visa_pcb1_normal_00{i}__product_01", image)
+        for i in range(5)
+    ]
+    for row in rows:
+        row["dataset_split"] = "train"
+    dataset.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    output = tmp_path / "adapter-output"
+    adapter = tmp_path / "checkpoint-50"
+    adapter.mkdir()
+    config = InferenceConfig(
+        run_id="adapter_test",
+        adapter_path=adapter,
+        benchmark_path=dataset,
+        benchmark_manifest_path=tmp_path / "missing-manifest.json",
+        output_dir=output,
+        partial_predictions_path=output / "predictions.partial.jsonl",
+        predictions_path=output / "predictions.jsonl",
+        errors_path=output / "errors.jsonl",
+        run_manifest_path=output / "run_manifest.json",
+        evaluation_records_path=output / "evaluation_records.jsonl",
+        expected_dataset_split="train",
+        subset_limit=3,
+        subset_seed=42,
+    )
+
+    result = run_adapter_evaluation(config, project_root=tmp_path, loader=_loader)
+
+    assert result.inference.complete
+    assert result.inference.completed_predictions == 3
+    selected = read_jsonl(config.evaluation_records_path or Path("missing"))
+    predictions = read_jsonl(config.predictions_path)
+    assert [row["instruction_id"] for row in selected] == [
+        row["instruction_id"] for row in predictions
+    ]
+    summary = json.loads(result.summary_path.read_text(encoding="utf-8"))
+    assert summary["adapter_path"] == adapter.as_posix()
+    assert summary["records"] == 3
+    assert summary["inference_errors"] == 0

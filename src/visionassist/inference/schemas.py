@@ -53,6 +53,7 @@ class InferenceConfig(BaseModel):
     model_id: str = "Qwen/Qwen2.5-VL-3B-Instruct"
     model_revision: str | None = None
     processor_revision: str | None = None
+    adapter_path: Path | None = None
     benchmark_path: Path = Path(
         "data/benchmarks/visa_baseline_v1/benchmark.jsonl"
     )
@@ -72,6 +73,11 @@ class InferenceConfig(BaseModel):
     run_manifest_path: Path = Path(
         "outputs/baseline/qwen2_5_vl_3b_direct/run_manifest.json"
     )
+    evaluation_records_path: Path | None = None
+    expected_dataset_split: Literal["train", "validation", "test"] = "test"
+    subset_limit: int | None = Field(default=None, ge=1)
+    subset_seed: int = 42
+    allow_path_normalized_hash_mismatch: bool = False
     system_prompt: str | None = None
     precision: Literal["auto", "bfloat16", "float16", "float32"] = "auto"
     device_map: str = "auto"
@@ -79,6 +85,8 @@ class InferenceConfig(BaseModel):
         "auto"
     )
     load_in_4bit: bool = False
+    image_min_pixels: int | None = Field(default=None, ge=1)
+    image_max_pixels: int | None = Field(default=None, ge=1)
     trust_remote_code: bool = False
     seed: int = 42
     save_every: int = Field(default=1, ge=1)
@@ -89,6 +97,16 @@ class InferenceConfig(BaseModel):
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
 
     @model_validator(mode="after")
+    def validate_image_pixels(self) -> InferenceConfig:
+        if (
+            self.image_min_pixels is not None
+            and self.image_max_pixels is not None
+            and self.image_min_pixels > self.image_max_pixels
+        ):
+            raise ValueError("image_min_pixels cannot exceed image_max_pixels.")
+        return self
+
+    @model_validator(mode="after")
     def validate_output_paths(self) -> InferenceConfig:
         managed = (
             self.partial_predictions_path,
@@ -96,6 +114,8 @@ class InferenceConfig(BaseModel):
             self.errors_path,
             self.run_manifest_path,
         )
+        if self.evaluation_records_path is not None:
+            managed += (self.evaluation_records_path,)
         for path in managed:
             if self.output_dir not in path.parents and path != self.output_dir:
                 raise ValueError(f"Output path must be inside output_dir: {path}")

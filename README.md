@@ -2,7 +2,7 @@
 
 VisionAssist is a reproducible multimodal fine-tuning project for industrial visual inspection and defect explanation.
 
-The project converts the official VisA industrial anomaly dataset into a validated multimodal instruction dataset suitable for vision-language model fine-tuning. The current pipeline covers dataset acquisition, annotation parsing, mask-derived feature generation, leakage-safe splitting, and grounded instruction generation.
+The project converts the official VisA industrial anomaly dataset into a validated multimodal instruction dataset, benchmarks an untouched vision-language model, and provides GPU-aware QLoRA training infrastructure for fine-tuning Qwen2.5-VL-3B-Instruct.
 
 ## Project objective
 
@@ -23,7 +23,10 @@ The project does **not** claim to determine mechanical root cause, hidden intern
 
 ## Current status
 
-The data-engineering pipeline is complete through **Phase 5**.
+The data pipeline, training-readiness validation, untouched-model baseline, and
+Phase 8 training-infrastructure validation are complete. A 32-example QLoRA
+overfit run has also completed successfully. The next development gate is
+post-training adapter evaluation before scaling training.
 
 | Phase                            | Status   | Main output                               |
 | -------------------------------- | -------- | ----------------------------------------- |
@@ -32,7 +35,10 @@ The data-engineering pipeline is complete through **Phase 5**.
 | Phase 3 — Feature derivation     | Complete | Spatially enriched records                |
 | Phase 4 — Data splitting         | Complete | Leakage-safe train/validation/test splits |
 | Phase 5 — Instruction generation | Complete | 52,863 multimodal instruction records     |
-| Phase 6 — Baseline evaluation    | Next     | Untouched-model benchmark                 |
+| Phase 6 — Training readiness     | Complete | Processor, masking, and data validation   |
+| Phase 7 — Baseline evaluation    | Complete | Frozen benchmark and baseline results     |
+| Phase 8 — QLoRA infrastructure   | Complete | Memory-safe training and checkpointing    |
+| Phase 9 — Adapter evaluation     | Next     | Post-training benchmark comparison        |
 
 Final dataset counts:
 
@@ -49,6 +55,34 @@ Final validation status:
 Errors: 0
 Warnings: 0
 ```
+
+Untouched-model baseline highlights:
+
+| Metric | Result |
+| --- | ---: |
+| Benchmark records | 2,100 |
+| Inference errors | 0 |
+| Overall failure rate | 82.9% |
+| Binary inspection accuracy | 35.5% |
+| Product identification accuracy | 16.0% |
+| Defect exact match | 0.0% |
+| Localization accuracy | 19.7% |
+| Structured-report schema validity | 0.0% |
+| Appropriate abstention accuracy | 74.0% |
+
+The baseline was run in BF16 without 4-bit quantization on an NVIDIA A100
+40 GB. These results are the frozen reference for measuring improvement after
+fine-tuning.
+
+Phase 8 validation highlights:
+
+- the revised one-batch forward-and-backward smoke test passed;
+- peak allocated VRAM was 3.72 GiB on an A100 40 GB;
+- 3,022,848 LoRA parameters were trainable;
+- gradients were finite and nonzero;
+- the 32-example, 100-step overfit run completed;
+- the best validation loss was 1.246 at checkpoint 50;
+- the final reported training loss was 0.750.
 
 ---
 
@@ -379,6 +413,80 @@ Test:         7,932
 Total:       52,863
 ```
 
+### Phase 6 — Training-readiness validation
+
+```powershell
+uv run visionassist phase6-visa --config configs/data/visa.yaml
+```
+
+Phase 6 validates all image references, instruction schemas, task coverage,
+assistant-only label masking, Qwen processor compatibility, sequence lengths,
+and visual sample quality. The final report covers all 52,863 instructions and
+10,821 source images with zero errors or warnings.
+
+Generated reports are stored in:
+
+```text
+reports/training_readiness/
+```
+
+### Phase 7 — Frozen baseline benchmark
+
+Phase 7 builds a deterministic 2,100-record benchmark, runs untouched-model
+inference, and evaluates task-specific predictions.
+
+```powershell
+uv run visionassist baseline-inference `
+    --config configs/inference/qwen25vl3b_direct.yaml
+```
+
+Inference is append-only and resumable through `predictions.partial.jsonl`.
+The completed direct baseline and evaluation reports are stored under:
+
+```text
+outputs/baseline/qwen2_5_vl_3b_direct/
+outputs/baseline/direct_evaluation/
+```
+
+### Phase 8 — QLoRA training infrastructure
+
+Phase 8 adds hardware inspection, 4-bit model loading, language-only LoRA
+target discovery, deterministic training subsets, forward-and-backward smoke
+validation, resumable training, bounded checkpoint retention, and optional
+Google Drive mirroring.
+
+Local CPU-safe checks:
+
+```powershell
+uv run pytest tests/test_phase8_training.py
+uv run visionassist training-environment `
+    --config configs/training/qwen25vl3b_qlora_overfit.yaml
+```
+
+GPU workflow:
+
+```bash
+uv run visionassist training-smoke-test \
+  --config configs/training/qwen25vl3b_qlora_overfit.yaml
+
+uv run visionassist train-qlora \
+  --config configs/training/qwen25vl3b_qlora_overfit.yaml \
+  --resume latest
+```
+
+The default overfit profile is designed for an A100 40 GB and uses:
+
+- a maximum sequence length of 2,048;
+- 100,352–200,704 image pixels;
+- LoRA rank 8 and alpha 16;
+- `q_proj`, `v_proj`, and `o_proj` targets;
+- batch size 1 with gradient accumulation;
+- SDPA attention and gradient checkpointing.
+
+Use [the Phase 8 Colab notebook](scripts/VisionAssist_Phase8_Colab.ipynb) in a
+fresh GPU runtime. Do not start a larger training run until the one-batch report
+confirms finite loss, finite nonzero gradients, and adequate VRAM headroom.
+
 ---
 
 ## Instruction record format
@@ -438,8 +546,11 @@ All instruction variants from one image inherit the same Phase 4 split.
 ```text
 visionassist/
 ├── configs/
-│   └── data/
-│       └── visa.yaml
+│   ├── benchmark/
+│   ├── data/
+│   ├── evaluation/
+│   ├── inference/
+│   └── training/
 ├── data/
 │   ├── downloads/
 │   ├── raw/
@@ -447,8 +558,13 @@ visionassist/
 │   ├── processed/
 │   ├── splits/
 │   └── manifests/
+├── outputs/
+│   ├── baseline/
+│   └── training/
 ├── reports/
-│   └── dataset_audit/
+│   ├── baseline/
+│   ├── dataset_audit/
+│   └── training_readiness/
 ├── scripts/
 ├── src/
 │   └── visionassist/
@@ -470,6 +586,10 @@ visionassist/
 │       │   ├── phase4.py
 │       │   ├── phase5.py
 │       │   └── split_visa.py
+│       ├── benchmarks/
+│       ├── evaluation/
+│       ├── inference/
+│       ├── training/
 │       └── schemas/
 │           ├── dataset.py
 │           └── instruction.py
@@ -505,6 +625,10 @@ uv run pytest tests/test_parse_visa.py
 uv run pytest tests/test_derive_features.py
 uv run pytest tests/test_split_visa.py
 uv run pytest tests/test_generate_instructions.py
+uv run pytest tests/test_phase6_readiness.py
+uv run pytest tests/test_phase7_benchmark.py tests/test_phase7_metrics.py
+uv run pytest tests/test_phase7c_inference.py
+uv run pytest tests/test_phase8_training.py
 ```
 
 ---
@@ -560,21 +684,29 @@ The snapshot includes source code, configuration, tests, documentation, and ligh
 
 ## Next phase
 
-The next phase is **Phase 6 — Training-readiness validation and untouched-model baseline evaluation**.
+The next phase is **Phase 9 — Post-training adapter evaluation**.
 
-Recommended work:
+The immediate work is to load the best adapter from the completed 32-example
+overfit experiment and evaluate generated answers on its training subset,
+validation subset, and a small held-out benchmark sample. The evaluation must
+confirm that reduced training loss produces useful outputs rather than token-level
+memorization or repetitive generations.
 
-1. verify all image references;
-2. visually inspect samples from every task family;
-3. implement the Qwen2.5-VL processor adapter;
-4. implement the VLM data collator;
-5. measure prompt and answer token-length distributions;
-6. measure image-resolution and memory requirements;
-7. run a small forward-pass smoke test;
-8. evaluate the untouched model on a fixed benchmark subset;
-9. save baseline metrics before QLoRA fine-tuning.
+Promotion gates before the 1,000-example smoke run:
 
-Training should begin only after the dataset adapter, batching logic, and baseline evaluation are validated.
+1. adapter inference loads the base model and selected checkpoint reproducibly;
+2. generated answers are valid, grounded, and non-repetitive;
+3. training-subset performance improves clearly over the untouched baseline;
+4. structured reports satisfy the required JSON schema;
+5. checkpoint resume and best-checkpoint selection are verified;
+6. evaluation artifacts record model, adapter, data, and configuration hashes.
+
+After those gates pass, run the 1,000-example smoke profile, followed by the
+10,000-example pilot. Compare every trained run against the frozen Phase 7
+benchmark before expanding further.
+
+See [README_PHASE9.md](README_PHASE9.md) for checkpoint restoration, adapter
+evaluation commands, promotion criteria, and the gated training sequence.
 
 ---
 
