@@ -1682,3 +1682,36 @@ Passed:   true
 The data-engineering foundation is complete.
 
 The correct next step is not immediate full training. The next step is to build the Qwen2.5-VL dataset adapter, inspect the generated samples, validate batching and label masking, measure token and image distributions, and record an untouched-model baseline before QLoRA fine-tuning.
+
+---
+
+# 23. Phase 10 task-balanced pilot completion
+
+Phase 10 trained a fresh QLoRA adapter from
+`Qwen/Qwen2.5-VL-3B-Instruct` using a deterministic 10,000-instruction sample.
+The audit contained 10,000 unique instruction IDs, 3,435 unique images, all
+eight task families, and all 12 VisA categories. Its ordered instruction-ID
+fingerprint is
+`98bcf9ab5831746b3c3399723a3f83b2a118fafba837d9613fa8245a860dae1e`.
+
+The one-batch forward/backward gate passed with finite, nonzero gradients and
+3.721 GiB peak allocated A100 memory. Training completed at step 1,250 with
+checkpoint 1,250 selected as best, evaluation loss 0.0693785, and training loss
+0.2725075.
+
+The 1,000-record validation assessment completed with zero inference errors and
+a 28.8% failure rate. The complete frozen 2,100-record test also completed with
+zero inference errors and a 46.0% failure rate. Held-out metrics included 85.0%
+binary accuracy, 0.3210 defect F1, 47.38% evidence coverage, 46.67% exact
+localization, 98.67% product accuracy, and 99.33% appropriate abstention.
+Unsupported root-cause and safety-claim rates remained zero.
+
+The pilot is promoted over the 1,000-example smoke adapter. The primary
+remaining errors are wrong defect (326), incomplete or incorrect evidence
+(330), and wrong or adjacent location (265 combined). Phase 11 therefore starts
+with deterministic error analysis and leakage-safe hard-example selection, not
+an immediate larger training run.
+
+Compact metrics are tracked in
+`docs/results/phase10/pilot_results.json`. Adapter weights, checkpoints, raw
+predictions, and evaluation records remain external Google Drive artifacts.

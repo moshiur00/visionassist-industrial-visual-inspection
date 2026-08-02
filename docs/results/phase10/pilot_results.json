@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "run_id": "qwen25vl3b_qlora_pilot_v1",
+  "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "training": {
+    "records": 10000,
+    "unique_instruction_ids": 10000,
+    "unique_images": 3435,
+    "selection_sha256": "98bcf9ab5831746b3c3399723a3f83b2a118fafba837d9613fa8245a860dae1e",
+    "global_step": 1250,
+    "best_checkpoint": "checkpoint-1250",
+    "best_metric": 0.06937846541404724,
+    "training_loss": 0.2725074812889099,
+    "smoke_test_passed": true,
+    "smoke_test_peak_allocated_vram_gib": 3.721
+  },
+  "validation": {
+    "records": 1000,
+    "inference_errors": 0,
+    "failure_rate": 0.288,
+    "binary_accuracy": 0.9301470588235294,
+    "defect_exact_match": 0.2222222222222222,
+    "defect_f1": 0.37546296296296294,
+    "evidence_fact_coverage": 0.4381365740740741,
+    "localization_accuracy": 0.44285714285714284,
+    "adjacent_tolerance_accuracy": 0.8285714285714286,
+    "product_accuracy": 0.9954337899543378,
+    "structured_schema_validity": 1.0,
+    "structured_defect_f1": 0.7644883485309016,
+    "technician_note_fact_coverage": 0.7095760233918128,
+    "appropriate_abstention_accuracy": 1.0
+  },
+  "test": {
+    "records": 2100,
+    "inference_errors": 0,
+    "failure_records": 966,
+    "failure_rate": 0.46,
+    "binary_accuracy": 0.85,
+    "defect_exact_match": 0.18666666666666668,
+    "defect_f1": 0.320989417989418,
+    "evidence_fact_coverage": 0.4737916666666667,
+    "localization_accuracy": 0.4666666666666667,
+    "adjacent_tolerance_accuracy": 0.8633333333333333,
+    "product_accuracy": 0.9866666666666667,
+    "structured_json_validity": 0.9966666666666667,
+    "structured_schema_validity": 0.9966666666666667,
+    "structured_condition_accuracy": 0.8566666666666667,
+    "structured_product_accuracy": 0.98,
+    "structured_defect_f1": 0.5236111111111111,
+    "structured_location_accuracy": 0.6466666666666666,
+    "structured_severity_accuracy": 0.71,
+    "technician_note_fact_coverage": 0.7152592592592593,
+    "appropriate_abstention_accuracy": 0.9933333333333333,
+    "unsupported_root_cause_rate": 0.0,
+    "unsupported_safety_claim_rate": 0.0,
+    "failure_tag_counts": {
+      "adjacent_location": 119,
+      "failed_to_abstain": 1,
+      "false_negative": 59,
+      "false_positive": 1,
+      "incomplete_or_incorrect_facts": 330,
+      "invalid_json": 1,
+      "partial_compound_defect": 68,
+      "wrong_condition": 42,
+      "wrong_defect": 326,
+      "wrong_location": 146,
+      "wrong_product": 9,
+      "wrong_severity": 86
+    }
+  },
+  "artifact_policy": {
+    "tracked": "This compact evidence record",
+    "external": "Weights, checkpoints, predictions, and evaluation records remain in Google Drive"
+  },
+  "artifact_sha256": {
+    "training_archive": "3f0d5a0b2ed47c1b62b6f01b3d78a7edf0fc68f8f8874428f2a4bcda8eab3310",
+    "evaluation_archive": "493d48ea1e199c93f27938c06f455a29f7f75fdfdb43fb1a9e6e8469f7a03b44",
+    "run_manifest": "a76056a4db7dd7b0b38c9259aea2ec42b37c3f16385f5f664117ea96bf801598",
+    "dataset_manifest": "2c3cfe37d411e97e849c6553752177efab60048fd9baeb271a55c43a28bc1111",
+    "validation_metrics": "b603c9c069e7a343c97cf294d7966f396ba9511a8caf8b15db400e116a794aa6",
+    "test_metrics": "6c96e1622cdfea9ec1abdc2fe79eeea700dbd43bbbd628e1fb004c7c131dd9b4"
+  }
+}
