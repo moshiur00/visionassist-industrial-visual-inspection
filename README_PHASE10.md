@@ -120,3 +120,25 @@ behaviors. Target gates are:
 
 Missing a target does not automatically invalidate the experiment, but every
 miss requires failure analysis before a full-data training decision.
+
+## Final result
+
+Phase 10 completed on 2026-08-02. The fresh 10,000-example run reached step
+1,250, selected checkpoint 1,250, and completed validation plus the frozen
+2,100-record held-out benchmark with zero inference errors.
+
+| Metric | 1,000-example adapter | 10,000-example pilot |
+| --- | ---: | ---: |
+| Held-out failure rate | 53.86% | 46.00% |
+| Binary accuracy | 82.00% | 85.00% |
+| Defect F1 | 13.33% | 32.10% |
+| Evidence coverage | 39.10% | 47.38% |
+| Exact localization | 44.33% | 46.67% |
+| Product accuracy | 86.00% | 98.67% |
+| Abstention accuracy | 88.67% | 99.33% |
+
+The pilot is promoted as the current best adapter. It missed the aspirational
+failure-rate, evidence, localization, and perfect-schema gates, so Phase 11
+focuses on defect confusion, evidence completeness, and exact localization.
+See [the compact result record](docs/results/phase10/pilot_results.json) and
+[the Phase 11 plan](README_PHASE11.md).

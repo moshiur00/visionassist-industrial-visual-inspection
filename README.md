@@ -23,10 +23,10 @@ The project does **not** claim to determine mechanical root cause, hidden intern
 
 ## Current status
 
-The data pipeline, training-readiness validation, untouched-model baseline, and
-Phase 8 training-infrastructure validation are complete. A 32-example QLoRA
-overfit run has also completed successfully. The next development gate is
-post-training adapter evaluation before scaling training.
+The data pipeline, training infrastructure, frozen baseline, adapter evaluation,
+and task-balanced 10,000-example QLoRA pilot are complete. The pilot is the
+current best adapter. Phase 11 begins with deterministic defect and localization
+failure analysis before another training run.
 
 | Phase                            | Status   | Main output                               |
 | -------------------------------- | -------- | ----------------------------------------- |
@@ -39,7 +39,8 @@ post-training adapter evaluation before scaling training.
 | Phase 7 — Baseline evaluation    | Complete | Frozen benchmark and baseline results     |
 | Phase 8 — QLoRA infrastructure   | Complete | Memory-safe training and checkpointing    |
 | Phase 9 — Adapter evaluation     | Complete | Overfit and 1,000-example adapter results |
-| Phase 10 — Task-balanced pilot   | Next     | 10,000-example pilot and full evaluation  |
+| Phase 10 — Task-balanced pilot   | Complete | 10,000-example pilot and full evaluation  |
+| Phase 11 — Hard-example iteration | Next    | Defect and localization error reduction   |
 
 Final dataset counts:
 
@@ -685,21 +686,22 @@ The snapshot includes source code, configuration, tests, documentation, and ligh
 
 ## Next phase
 
-The next phase is **Phase 10 — Task-balanced 10,000-example pilot**.
+The next phase is **Phase 11 — Defect and localization hard-example
+iteration**.
 
-The completed 1,000-example adapter reduced the frozen-benchmark failure rate
-from 82.9% to 53.9%, while substantially improving binary inspection, product
-identification, localization, structured reporting, and abstention. Phase 10
-will introduce deterministic task quotas before starting a fresh 10,000-example
-pilot, with additional weight on defect identification and evidence grounding.
+The completed 10,000-example pilot reduced the frozen-benchmark failure rate
+from 53.9% to 46.0%. Held-out product identification reached 98.7%, defect F1
+reached 0.321, and abstention reached 99.3%, with no unsupported root-cause or
+safety claims. Wrong-defect, incomplete-evidence, and localization errors now
+dominate the remaining failures.
 
-Before GPU training, implement and test the quota sampler, audit the exact
-10,000-record selection, run a forward-and-backward smoke test, and configure a
-new persistent checkpoint directory. The pilot must start from the untouched
-base model and be evaluated against the complete frozen Phase 7 benchmark.
+Phase 11 starts with reproducible failure analysis and leakage-safe hard-example
+selection. It will not launch another GPU run until defect and localization
+confusions have been audited and the selected training records pass CPU and
+one-batch GPU gates.
 
-See [README_PHASE10.md](README_PHASE10.md) for the sampling policy,
-implementation work, execution gates, and post-training promotion criteria.
+See [README_PHASE10.md](README_PHASE10.md) for the completed pilot and
+[README_PHASE11.md](README_PHASE11.md) for the next development sequence.
 
 ---
 
