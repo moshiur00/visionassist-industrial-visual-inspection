@@ -5,6 +5,7 @@ from __future__ import annotations
 import gc
 import json
 import random
+import shutil
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -245,6 +246,40 @@ def _load_failed_ids(path: Path) -> set[str]:
     }
 
 
+def _restore_persistent_inference(config: InferenceConfig) -> None:
+    if config.persistent_output_dir is None or config.overwrite:
+        return
+    for local in (
+        config.partial_predictions_path,
+        config.predictions_path,
+        config.errors_path,
+        config.run_manifest_path,
+    ):
+        persistent = config.persistent_output_dir / local.name
+        if persistent.is_file() and not local.exists():
+            local.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(persistent, local)
+
+
+def _sync_persistent_inference(config: InferenceConfig) -> None:
+    if config.persistent_output_dir is None:
+        return
+    config.persistent_output_dir.mkdir(parents=True, exist_ok=True)
+    for source in (
+        config.partial_predictions_path,
+        config.predictions_path,
+        config.errors_path,
+        config.run_manifest_path,
+        config.evaluation_records_path,
+    ):
+        if source is None or not source.is_file():
+            continue
+        destination = config.persistent_output_dir / source.name
+        temporary = destination.with_suffix(destination.suffix + ".tmp")
+        shutil.copy2(source, temporary)
+        temporary.replace(destination)
+
+
 def _initial_manifest(
     config: InferenceConfig,
     benchmark_hash: str,
@@ -323,6 +358,7 @@ def run_baseline_inference(
     records = _load_benchmark(config)
     benchmark_ids = [record.instruction_id for record in records]
     config.output_dir.mkdir(parents=True, exist_ok=True)
+    _restore_persistent_inference(config)
     if config.evaluation_records_path is not None:
         write_jsonl_atomic(
             config.evaluation_records_path,
@@ -417,6 +453,10 @@ def run_baseline_inference(
                 }
             )
             atomic_write_json(config.run_manifest_path, manifest)
+        if (
+            (new_predictions + error_count) % config.persistent_sync_every == 0
+        ):
+            _sync_persistent_inference(config)
 
     complete = set(benchmark_ids) == completed_ids
     final_path: Path | None = None
@@ -436,6 +476,7 @@ def run_baseline_inference(
         }
     )
     atomic_write_json(config.run_manifest_path, manifest)
+    _sync_persistent_inference(config)
 
     return BaselineInferenceResult(
         run_id=config.run_id,

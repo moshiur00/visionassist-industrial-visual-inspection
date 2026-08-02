@@ -94,6 +94,8 @@ class InferenceConfig(BaseModel):
     max_errors: int = Field(default=20, ge=0)
     retry_failed: bool = True
     overwrite: bool = False
+    persistent_output_dir: Path | None = None
+    persistent_sync_every: int = Field(default=25, ge=1)
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
 
     @model_validator(mode="after")

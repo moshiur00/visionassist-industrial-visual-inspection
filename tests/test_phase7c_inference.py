@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -196,3 +197,49 @@ def test_adapter_evaluation_uses_exact_deterministic_subset(tmp_path: Path) -> N
     assert summary["adapter_path"] == adapter.as_posix()
     assert summary["records"] == 3
     assert summary["inference_errors"] == 0
+
+
+def test_inference_restores_partial_predictions_from_persistent_storage(
+    tmp_path: Path,
+) -> None:
+    image = tmp_path / "image.jpg"
+    Image.new("RGB", (8, 8)).save(image)
+    benchmark = tmp_path / "benchmark.jsonl"
+    rows = [
+        _instruction(f"visa_pcb1_normal_00{i}__product_01", image)
+        for i in range(3)
+    ]
+    benchmark.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"benchmark_sha256": sha256_file(benchmark)}),
+        encoding="utf-8",
+    )
+    persistent = tmp_path / "persistent"
+    first_config = _config(tmp_path, benchmark, manifest, stop_after=1).model_copy(
+        update={
+            "persistent_output_dir": persistent,
+            "persistent_sync_every": 1,
+        }
+    )
+    first = run_baseline_inference(
+        first_config,
+        project_root=tmp_path,
+        loader=_loader,
+    )
+    assert first.completed_predictions == 1
+    assert (persistent / "predictions.partial.jsonl").is_file()
+
+    shutil.rmtree(first_config.output_dir)
+    second_config = first_config.model_copy(update={"stop_after": None})
+    second = run_baseline_inference(
+        second_config,
+        project_root=tmp_path,
+        loader=_loader,
+    )
+
+    assert second.complete
+    assert second.new_predictions == 2
+    assert (persistent / "predictions.jsonl").is_file()

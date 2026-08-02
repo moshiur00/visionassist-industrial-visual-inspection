@@ -59,6 +59,7 @@ class DataTrainingConfig(BaseModel):
     train_limit: int | None = Field(default=None, ge=1)
     validation_limit: int | None = Field(default=None, ge=1)
     subset_seed: int = 42
+    train_task_quotas: dict[str, int] | None = None
 
     @model_validator(mode="after")
     def validate_pixels(self) -> DataTrainingConfig:
@@ -68,6 +69,27 @@ class DataTrainingConfig(BaseModel):
             and self.image_min_pixels > self.image_max_pixels
         ):
             raise ValueError("image_min_pixels cannot exceed image_max_pixels.")
+        if self.train_task_quotas is not None:
+            if not self.train_task_quotas:
+                raise ValueError("train_task_quotas cannot be empty.")
+            invalid = {
+                task: quota
+                for task, quota in self.train_task_quotas.items()
+                if not task.strip() or quota < 1
+            }
+            if invalid:
+                raise ValueError(
+                    "train_task_quotas requires non-empty tasks and positive "
+                    f"quotas: {invalid}"
+                )
+            quota_total = sum(self.train_task_quotas.values())
+            if self.train_limit is None:
+                raise ValueError("train_limit is required with train_task_quotas.")
+            if quota_total != self.train_limit:
+                raise ValueError(
+                    "train_task_quotas must sum exactly to train_limit: "
+                    f"{quota_total} != {self.train_limit}."
+                )
         return self
 
 

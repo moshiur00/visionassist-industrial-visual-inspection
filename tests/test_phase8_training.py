@@ -105,3 +105,17 @@ def test_a100_safe_overfit_profile_is_memory_bounded() -> None:
     assert payload["lora"]["rank"] == 8
     assert payload["lora"]["alpha"] == 16
     assert payload["lora"]["target_suffixes"] == ["q_proj", "v_proj", "o_proj"]
+
+
+def test_training_arguments_avoid_removed_save_safetensors_option() -> None:
+    """Transformers 5.x always uses safe checkpoint serialization."""
+
+    training_source = (
+        Path(__file__).parents[1]
+        / "src"
+        / "visionassist"
+        / "training"
+        / "train.py"
+    ).read_text(encoding="utf-8")
+
+    assert "save_safetensors=" not in training_source
