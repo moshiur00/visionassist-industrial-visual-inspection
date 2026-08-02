@@ -57,7 +57,7 @@ def load_qwen25vl(config: InferenceConfig) -> LoadedInferenceModel:
 
     model_kwargs: dict[str, Any] = {
         "revision": config.model_revision,
-        "torch_dtype": dtype,
+        "dtype": dtype,
         "device_map": config.device_map,
         "trust_remote_code": config.trust_remote_code,
     }

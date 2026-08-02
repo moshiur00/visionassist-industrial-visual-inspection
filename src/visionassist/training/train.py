@@ -15,8 +15,7 @@ from visionassist.training.checkpointing import (
 )
 from visionassist.training.collator import QwenAssistantOnlyCollator
 from visionassist.training.config import Phase8TrainingConfig
-from visionassist.training.dataset import VisionAssistJsonlDataset
-from visionassist.training.experiment import subset_dataset, write_experiment_files
+from visionassist.training.experiment import training_datasets, write_experiment_files
 from visionassist.training.hardware import inspect_hardware, select_profile
 from visionassist.training.modeling import build_qlora_model
 
@@ -46,16 +45,7 @@ def _seed_everything(seed: int) -> None:
 
 
 def _datasets(config: Phase8TrainingConfig) -> tuple[Any, Any]:
-    train = VisionAssistJsonlDataset(config.data.train_path)
-    validation = VisionAssistJsonlDataset(config.data.validation_path)
-    return (
-        subset_dataset(train, config.data.train_limit, config.data.subset_seed),
-        subset_dataset(
-            validation,
-            config.data.validation_limit,
-            config.data.subset_seed + 1,
-        ),
-    )
+    return training_datasets(config)
 
 
 def _training_arguments(config: Phase8TrainingConfig, hardware: Any) -> Any:
@@ -92,7 +82,6 @@ def _training_arguments(config: Phase8TrainingConfig, hardware: Any) -> Any:
         tf32=config.training.tf32,
         seed=config.seed,
         data_seed=config.data.subset_seed,
-        save_safetensors=True,
     )
 
 
@@ -124,6 +113,8 @@ def validate_one_batch(
         hardware,
         train_count=len(train),
         validation_count=len(validation),
+        train_selection=train,
+        validation_selection=validation,
         trainable_parameters=build.trainable_parameters,
         total_parameters=build.total_parameters,
         target_modules=build.target_modules,
@@ -215,6 +206,8 @@ def run_qlora_training(
         hardware,
         train_count=len(train),
         validation_count=len(validation),
+        train_selection=train,
+        validation_selection=validation,
         trainable_parameters=build.trainable_parameters,
         total_parameters=build.total_parameters,
         target_modules=build.target_modules,

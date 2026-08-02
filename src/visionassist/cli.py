@@ -450,6 +450,39 @@ def training_environment_command(
         )
 
 
+@app.command("training-data-audit")
+def training_data_audit_command(
+    config: Path = typer.Option(
+        Path("configs/training/qwen25vl3b_qlora_pilot.yaml"),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        help="Optional audit JSON path; defaults inside the run output directory.",
+    ),
+) -> None:
+    """Audit and fingerprint deterministic training selections without a GPU."""
+
+    from visionassist.training.config import load_training_config
+    from visionassist.training.experiment import write_dataset_selection_audit
+
+    training_config = load_training_config(config)
+    audit_path = write_dataset_selection_audit(training_config, output)
+    payload = __import__("json").loads(audit_path.read_text(encoding="utf-8"))
+    console.print("[bold green]Training-data selection audit completed.[/bold green]")
+    console.print(f"Train records: {payload['train']['records']}")
+    console.print(f"Validation records: {payload['validation']['records']}")
+    console.print(
+        f"Instruction-ID SHA-256: {payload['train']['instruction_ids_sha256']}"
+    )
+    console.print(f"Audit: {audit_path}")
+
+
 @app.command("training-smoke-test")
 def training_smoke_test_command(
     config: Path = typer.Option(

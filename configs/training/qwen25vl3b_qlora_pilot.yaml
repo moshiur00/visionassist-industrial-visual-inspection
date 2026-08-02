@@ -32,6 +32,15 @@ data:
   train_limit: 10000
   validation_limit: 1000
   subset_seed: 42
+  train_task_quotas:
+    binary_inspection: 1400
+    product_identification: 1200
+    defect_identification: 1700
+    localization: 1400
+    evidence_explanation: 1500
+    structured_report: 1400
+    technician_note: 700
+    uncertainty: 700
 training:
   max_steps: -1
   num_train_epochs: 1.0

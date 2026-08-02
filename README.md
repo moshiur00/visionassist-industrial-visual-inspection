@@ -38,7 +38,8 @@ post-training adapter evaluation before scaling training.
 | Phase 6 — Training readiness     | Complete | Processor, masking, and data validation   |
 | Phase 7 — Baseline evaluation    | Complete | Frozen benchmark and baseline results     |
 | Phase 8 — QLoRA infrastructure   | Complete | Memory-safe training and checkpointing    |
-| Phase 9 — Adapter evaluation     | Next     | Post-training benchmark comparison        |
+| Phase 9 — Adapter evaluation     | Complete | Overfit and 1,000-example adapter results |
+| Phase 10 — Task-balanced pilot   | Next     | 10,000-example pilot and full evaluation  |
 
 Final dataset counts:
 
@@ -684,29 +685,21 @@ The snapshot includes source code, configuration, tests, documentation, and ligh
 
 ## Next phase
 
-The next phase is **Phase 9 — Post-training adapter evaluation**.
+The next phase is **Phase 10 — Task-balanced 10,000-example pilot**.
 
-The immediate work is to load the best adapter from the completed 32-example
-overfit experiment and evaluate generated answers on its training subset,
-validation subset, and a small held-out benchmark sample. The evaluation must
-confirm that reduced training loss produces useful outputs rather than token-level
-memorization or repetitive generations.
+The completed 1,000-example adapter reduced the frozen-benchmark failure rate
+from 82.9% to 53.9%, while substantially improving binary inspection, product
+identification, localization, structured reporting, and abstention. Phase 10
+will introduce deterministic task quotas before starting a fresh 10,000-example
+pilot, with additional weight on defect identification and evidence grounding.
 
-Promotion gates before the 1,000-example smoke run:
+Before GPU training, implement and test the quota sampler, audit the exact
+10,000-record selection, run a forward-and-backward smoke test, and configure a
+new persistent checkpoint directory. The pilot must start from the untouched
+base model and be evaluated against the complete frozen Phase 7 benchmark.
 
-1. adapter inference loads the base model and selected checkpoint reproducibly;
-2. generated answers are valid, grounded, and non-repetitive;
-3. training-subset performance improves clearly over the untouched baseline;
-4. structured reports satisfy the required JSON schema;
-5. checkpoint resume and best-checkpoint selection are verified;
-6. evaluation artifacts record model, adapter, data, and configuration hashes.
-
-After those gates pass, run the 1,000-example smoke profile, followed by the
-10,000-example pilot. Compare every trained run against the frozen Phase 7
-benchmark before expanding further.
-
-See [README_PHASE9.md](README_PHASE9.md) for checkpoint restoration, adapter
-evaluation commands, promotion criteria, and the gated training sequence.
+See [README_PHASE10.md](README_PHASE10.md) for the sampling policy,
+implementation work, execution gates, and post-training promotion criteria.
 
 ---
 
