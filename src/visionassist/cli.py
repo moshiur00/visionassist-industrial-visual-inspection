@@ -491,6 +491,59 @@ def select_hard_examples_command(
     console.print(f"Manifest: {manifest_path}")
 
 
+@app.command("release-readiness")
+def release_readiness_command(
+    config: Path = typer.Option(
+        Path("configs/release/phase12.yaml"),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    project_root: Path = typer.Option(
+        Path.cwd(),
+        "--project-root",
+        exists=True,
+        file_okay=False,
+        readable=True,
+    ),
+    require_ready: bool = typer.Option(
+        False,
+        "--require-ready",
+        help="Exit unsuccessfully unless every release check passes.",
+    ),
+) -> None:
+    """Verify promoted/rollback artifacts and Phase 12 acceptance evidence."""
+
+    from visionassist.release.readiness import (
+        load_release_readiness_config,
+        write_release_readiness_report,
+    )
+
+    release_config = load_release_readiness_config(config)
+    report_path = write_release_readiness_report(
+        release_config,
+        project_root=project_root,
+    )
+    payload = __import__("json").loads(report_path.read_text(encoding="utf-8"))
+    color = {"ready": "green", "pending": "yellow", "blocked": "red"}[
+        payload["status"]
+    ]
+    console.print(
+        f"[bold {color}]Phase 12 release status: {payload['status']}.[/bold {color}]"
+    )
+    console.print(
+        "Checks: "
+        f"pass={payload['counts']['pass']}, "
+        f"fail={payload['counts']['fail']}, "
+        f"pending={payload['counts']['pending']}"
+    )
+    console.print(f"Report: {report_path}")
+    if require_ready and payload["status"] != "ready":
+        raise typer.Exit(code=1)
+
+
 @app.command("training-environment")
 def training_environment_command(
     config: Path = typer.Option(

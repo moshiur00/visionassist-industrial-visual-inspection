@@ -32,7 +32,10 @@ wrong or adjacent location (265 combined).
 7. Train a separately named adapter and compare it with the frozen Phase 10
    result on exactly the same validation and test records.
 
-## Promotion gates
+## Original promotion targets
+
+These strict targets were defined before the experiments. The final decision
+records every exception instead of silently treating all targets as passed.
 
 - held-out failure rate below 46%;
 - defect-identification F1 above 0.321;
@@ -44,8 +47,13 @@ wrong or adjacent location (265 combined).
 - abstention accuracy at least 0.99;
 - zero unsupported root-cause and safety claims.
 
-No Phase 11 training begins until the failure analysis and hard-example
-selection are reproducible and leakage checks pass.
+Phase 11b met the overall failure-rate, defect, evidence, product, and unsupported
+claim targets. It narrowly missed the exact-localization, structured-validity,
+and abstention targets. It was promoted on aggregate improvement with Phase 10
+retained as an explicit rollback.
+
+Phase 11 training remained gated until the failure analysis and hard-example
+selection were reproducible and leakage checks passed.
 
 ## Progress
 
@@ -68,7 +76,9 @@ selection are reproducible and leakage checks pass.
 - [x] Add per-task condition quotas and build the Phase 11b balanced-replay
   selection.
 - [x] Create and syntax-check the Phase 11b gated Colab notebook.
-- [ ] Run the Phase 11b smoke gate, short training, and validation-only review.
+- [x] Run the Phase 11b smoke gate, short training, and validation-only review.
+- [x] Run the complete frozen test after the validation review.
+- [x] Promote Phase 11b and retain Phase 10 as the rollback adapter.
 
 The first report found 88 exact defect matches among 479 anomalous direct and
 structured-report records. The dominant defect failure is PCB `melt` being
@@ -107,6 +117,23 @@ It starts again from Phase 10 at `1e-5` for at most 150 steps, evaluating every
 25 steps. See the [rejected-run record](docs/results/phase11/rejected_hard_example_run.json)
 and [Phase 11b selection](docs/results/phase11b/balanced_replay_selection_summary.json).
 
-Use [the Phase 11b Colab notebook](scripts/VisionAssist_Phase11b_Colab.ipynb)
-for the recovery experiment. It intentionally stops after validation and does
-not contain an executable frozen-test cell.
+Phase 11b completed at step 150, with checkpoint 150 selected as best. The
+checkpoint and exported final adapter are byte-identical (SHA-256
+`d335e37fdd8c96c0e9a823992f4aa458b0500b542986dedccde21561a142590f`).
+The complete 2,100-record frozen test produced zero inference errors and 937
+failure records (44.62%), improving on Phase 10 by 29 records and 1.38
+percentage points. Direct defect F1 rose from 0.3210 to 0.4239, evidence fact
+coverage from 0.4738 to 0.4970, and structured-report defect F1 from 0.5236 to
+0.5442.
+
+The trade-offs are retained in the promotion record: exact localization fell
+slightly from 46.67% to 46.33%, while adjacent-tolerance localization improved
+to 86.67%; structured schema validity fell from 99.67% to 99.33%; and
+appropriate abstention fell from 99.33% to 98.00%. Product accuracy improved to
+99.33%, and unsupported root-cause and safety-claim rates remained zero.
+
+Phase 11b is promoted as the best overall adapter, with Phase 10 retained as a
+rollback. No additional training run is scheduled by default. See the
+[complete compact result](docs/results/phase11b/promoted_balanced_replay_results.json)
+and use [the cleaned Phase 11b Colab notebook](scripts/VisionAssist_Phase11b_Colab.ipynb)
+to reproduce the gated workflow, including the separately gated frozen test.

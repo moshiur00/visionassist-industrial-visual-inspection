@@ -1715,3 +1715,90 @@ an immediate larger training run.
 Compact metrics are tracked in
 `docs/results/phase10/pilot_results.json`. Adapter weights, checkpoints, raw
 predictions, and evaluation records remain external Google Drive artifacts.
+
+---
+
+# 24. Phase 11 hard-example rejection and Phase 11b promotion
+
+Phase 11 introduced deterministic failure analysis and selected 6,000
+leakage-safe hard examples. The selection contained 5,464 anomalous records,
+and all 1,000 structured-report records were anomalous. Although direct defect
+and evidence metrics improved, this imbalance caused structured-report behavior
+to collapse on validation. The run was rejected before frozen testing. Its best
+checkpoint and final adapter hashes matched, excluding an export mismatch as
+the cause.
+
+Phase 11b corrected the replay distribution with exact per-task condition
+quotas: 4,220 anomalous and 1,780 normal records overall, including 300
+anomalous and 800 normal structured reports. The selection contained 6,000
+unique instruction IDs, 2,392 images, and no validation or test image overlap.
+Training restarted from the promoted Phase 10 adapter with a fresh optimizer,
+a `1e-5` learning rate, and a 150-step limit. The GPU smoke gate passed and
+training completed at step 150; checkpoint 150 was selected as best with
+evaluation loss 0.0646632 and training loss 0.0887208.
+
+Validation completed over 1,000 records with zero inference errors and a 28.7%
+failure rate. The complete 2,100-record frozen test also had zero inference
+errors. Compared with Phase 10, failures fell from 966 to 937 and the failure
+rate from 46.00% to 44.62%. Direct defect F1 rose from 0.3210 to 0.4239,
+evidence fact coverage from 0.4738 to 0.4970, and structured-report defect F1
+from 0.5236 to 0.5442. Unsupported root-cause and safety-claim rates remained
+zero.
+
+Phase 11b is promoted as the current best adapter. Phase 10 remains the rollback
+because Phase 11b has small regressions in exact localization (46.67% to
+46.33%), structured schema validity (99.67% to 99.33%), and appropriate
+abstention (99.33% to 98.00%). The training cycle is closed. Phase 12 focuses on
+packaging, deterministic inference acceptance tests, documented limitations,
+and release readiness rather than additional training.
+
+The promoted final adapter and checkpoint-150 adapter share SHA-256
+`d335e37fdd8c96c0e9a823992f4aa458b0500b542986dedccde21561a142590f`.
+Compact metrics and archive hashes are tracked in
+`docs/results/phase11b/promoted_balanced_replay_results.json`; large weights,
+predictions, and evaluation records remain ignored local or Google Drive
+artifacts.
+
+---
+
+# 25. Phase 12 release-readiness implementation
+
+Phase 12 begins after the planned training cycle closes. It adds no optimizer
+steps and does not change the promoted weights. Its purpose is to make artifact
+identity, clean-runtime behavior, limitations, and rollback enforceable.
+
+The release contract pins `Qwen/Qwen2.5-VL-3B-Instruct` and its processor to
+revision `66285546d2b821cf421d4f5eb2576359d3770cd3`. Earlier training and
+evaluation manifests recorded null revisions, so a clean-runtime acceptance run
+must prove that the promoted adapter is compatible with this exact upstream
+revision. The contract hashes every required promoted-adapter file and the two
+critical rollback-adapter files.
+
+The `release-readiness` command verifies adapter contents, base-model alignment,
+model-card and rollback documentation, the Phase 11b promotion evidence, and
+all configured metric thresholds. Before GPU acceptance it must return
+`pending` with no failed checks. With valid acceptance artifacts it must return
+`ready`; any identity, hash, metric, count, or unsupported-claim violation makes
+the release `blocked`.
+
+Inference configuration now supports exact per-task subset quotas. The Phase 12
+acceptance suite selects 96 frozen test records with 12 records from each of the
+eight task families. It uses deterministic decoding, pinned revisions, BF16
+computation, 4-bit NF4 loading, SDPA attention, and the promoted adapter. The
+acceptance manifest must contain the exact task quotas, adapter hash, revision,
+96 completed predictions, and zero errors. Its ordered instruction-ID
+fingerprint is
+`afb6725901b21a7f013bb082f644b202ec6856fb8f3895a465331737c537b2ef`.
+
+The repository now contains:
+
+- `configs/release/phase12.yaml`, the validated release contract;
+- `configs/inference/qwen25vl3b_phase12_acceptance.yaml`, the clean-runtime run;
+- `MODEL_CARD.md`, including frozen-test metrics and known limitations;
+- `docs/PHASE12_ROLLBACK.md`, the immutable rollback procedure;
+- `tests/test_phase12_release.py`, covering pending, ready, and tamper states;
+- `scripts/VisionAssist_Phase12_Colab.ipynb`, with separate acceptance and
+  packaging gates.
+
+The remaining external step is the clean Colab GPU run. A release bundle may be
+built only after `visionassist release-readiness --require-ready` succeeds.

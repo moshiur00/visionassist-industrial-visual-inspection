@@ -24,9 +24,11 @@ The project does **not** claim to determine mechanical root cause, hidden intern
 ## Current status
 
 The data pipeline, training infrastructure, frozen baseline, adapter evaluation,
-and task-balanced 10,000-example QLoRA pilot are complete. The pilot is the
-current best adapter. Phase 11 begins with deterministic defect and localization
-failure analysis before another training run.
+task-balanced 10,000-example pilot, and balanced-replay correction are complete.
+The Phase 11b adapter is the promoted model, with Phase 10 retained as rollback.
+The planned training cycle is closed. Phase 12 release-readiness development is
+in progress: immutable identities, acceptance gates, model documentation, and
+rollback controls are implemented, with the clean-runtime GPU check outstanding.
 
 | Phase                            | Status   | Main output                               |
 | -------------------------------- | -------- | ----------------------------------------- |
@@ -40,7 +42,8 @@ failure analysis before another training run.
 | Phase 8 — QLoRA infrastructure   | Complete | Memory-safe training and checkpointing    |
 | Phase 9 — Adapter evaluation     | Complete | Overfit and 1,000-example adapter results |
 | Phase 10 — Task-balanced pilot   | Complete | 10,000-example pilot and full evaluation  |
-| Phase 11 — Hard-example iteration | Next    | Defect and localization error reduction   |
+| Phase 11 — Hard-example iteration | Complete | Balanced replay and promoted final adapter |
+| Phase 12 — Release readiness      | In progress | Packaging, runtime QA, and model card    |
 
 Final dataset counts:
 
@@ -686,22 +689,26 @@ The snapshot includes source code, configuration, tests, documentation, and ligh
 
 ## Next phase
 
-The next phase is **Phase 11 — Defect and localization hard-example
-iteration**.
+The active phase is **Phase 12 — Release readiness**.
 
-The completed 10,000-example pilot reduced the frozen-benchmark failure rate
-from 53.9% to 46.0%. Held-out product identification reached 98.7%, defect F1
-reached 0.321, and abstention reached 99.3%, with no unsupported root-cause or
-safety claims. Wrong-defect, incomplete-evidence, and localization errors now
-dominate the remaining failures.
+Phase 11b is the promoted final adapter for this training cycle. On the complete
+2,100-record frozen test it reduced failures from 966 to 937 (46.00% to 44.62%),
+raised direct defect F1 from 0.3210 to 0.4239, and raised evidence fact coverage
+from 47.38% to 49.70%. It completed with zero inference errors and zero
+unsupported root-cause or safety claims. Phase 10 remains the rollback model.
 
-Phase 11 starts with reproducible failure analysis and leakage-safe hard-example
-selection. It will not launch another GPU run until defect and localization
-confusions have been audited and the selected training records pass CPU and
-one-batch GPU gates.
+Phase 12 now pins the model and processor revision, verifies promoted and
+rollback adapter hashes, publishes the model card and known limitations, and
+defines a task-balanced 96-record acceptance suite. The remaining release gate
+is to run that suite in a clean Colab GPU runtime, require a `ready` report, and
+build the immutable release bundle. Further training is out of scope unless
+release testing reveals a specific, measurable blocker.
 
-See [README_PHASE10.md](README_PHASE10.md) for the completed pilot and
-[README_PHASE11.md](README_PHASE11.md) for the next development sequence.
+See [README_PHASE10.md](README_PHASE10.md) for the pilot baseline,
+[README_PHASE11.md](README_PHASE11.md) for the completed correction sequence,
+and the [Phase 11b promotion record](docs/results/phase11b/promoted_balanced_replay_results.json)
+for compact frozen-test evidence and artifact hashes. Follow
+[README_PHASE12.md](README_PHASE12.md) for the active release sequence.
 
 ---
 

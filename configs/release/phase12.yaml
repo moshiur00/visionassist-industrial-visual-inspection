@@ -1,0 +1,63 @@
+release_id: visionassist_qwen25vl3b_phase12_v1
+model_id: Qwen/Qwen2.5-VL-3B-Instruct
+model_revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+processor_revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+promoted:
+  path: outputs/training/qwen25vl3b_qlora_balanced_replay_v1/final_adapter
+  base_model_id: Qwen/Qwen2.5-VL-3B-Instruct
+  files:
+    adapter_config.json: 7c8a8b2f7cbffa197f419f19e9386da3b4ef4c40d68f3322ee6a919c7a1ad5d7
+    adapter_model.safetensors: d335e37fdd8c96c0e9a823992f4aa458b0500b542986dedccde21561a142590f
+    chat_template.jinja: a0bc6f6fc7a29a80017a433e8f03a1cc1236e838a944a2d034295a60c4f2fddb
+    processor_config.json: 373007bad0e24d9971b8b84cc607798717f690f6a6d2dfa93e97a1ec26e0ac78
+    tokenizer.json: 9e2b7649a086fbb9771cd78ec5b7ffa7069e16a82424a382950fedfa1e057861
+    tokenizer_config.json: 6fd08fe6dac4bb25c1ced99ed3f2e22c786b92f1d387fa233bd672ed29e5d631
+rollback:
+  path: outputs/training/qwen25vl3b_qlora_pilot_v1/final_adapter
+  base_model_id: Qwen/Qwen2.5-VL-3B-Instruct
+  files:
+    adapter_config.json: ca11da6766225701398c1843b6ea39d52cf7b16614dceba9af0dbfa41ddad5f8
+    adapter_model.safetensors: eec9217a60d3897a48c925b0ad8658e0245e70d269d87ca73d627ebf0b7db8a7
+promotion_evidence_path: docs/results/phase11b/promoted_balanced_replay_results.json
+promotion_thresholds:
+  max_failure_rate: 0.46
+  min_binary_accuracy: 0.84
+  min_defect_f1: 0.40
+  min_evidence_fact_coverage: 0.49
+  min_localization_accuracy: 0.45
+  min_adjacent_tolerance_accuracy: 0.86
+  min_product_accuracy: 0.98
+  min_structured_json_validity: 0.99
+  min_structured_schema_validity: 0.99
+  min_structured_defect_f1: 0.53
+  min_technician_note_fact_coverage: 0.72
+  min_appropriate_abstention_accuracy: 0.97
+  max_unsupported_root_cause_rate: 0.0
+  max_unsupported_safety_claim_rate: 0.0
+acceptance:
+  run_manifest_path: outputs/release/phase12/acceptance/run_manifest.json
+  assessment_summary_path: outputs/release/phase12/acceptance/assessment_summary.json
+  metrics_path: outputs/release/phase12/acceptance/evaluation/metrics.json
+  records: 96
+  instruction_ids_sha256: afb6725901b21a7f013bb082f644b202ec6856fb8f3895a465331737c537b2ef
+  task_quotas:
+    binary_inspection: 12
+    defect_identification: 12
+    evidence_explanation: 12
+    localization: 12
+    product_identification: 12
+    structured_report: 12
+    technician_note: 12
+    uncertainty: 12
+  thresholds:
+    max_failure_rate: 0.65
+    min_binary_accuracy: 0.70
+    min_product_accuracy: 0.80
+    min_structured_json_validity: 0.90
+    min_structured_schema_validity: 0.90
+    min_appropriate_abstention_accuracy: 0.80
+    max_unsupported_root_cause_rate: 0.0
+    max_unsupported_safety_claim_rate: 0.0
+model_card_path: MODEL_CARD.md
+rollback_runbook_path: docs/PHASE12_ROLLBACK.md
+report_path: outputs/release/phase12/release_readiness.json

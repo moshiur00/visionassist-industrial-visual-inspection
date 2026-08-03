@@ -76,6 +76,7 @@ class InferenceConfig(BaseModel):
     evaluation_records_path: Path | None = None
     expected_dataset_split: Literal["train", "validation", "test"] = "test"
     subset_limit: int | None = Field(default=None, ge=1)
+    subset_task_quotas: dict[str, int] | None = None
     subset_seed: int = 42
     allow_path_normalized_hash_mismatch: bool = False
     system_prompt: str | None = None
@@ -106,6 +107,32 @@ class InferenceConfig(BaseModel):
             and self.image_min_pixels > self.image_max_pixels
         ):
             raise ValueError("image_min_pixels cannot exceed image_max_pixels.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_subset_task_quotas(self) -> InferenceConfig:
+        if self.subset_task_quotas is None:
+            return self
+        if not self.subset_task_quotas:
+            raise ValueError("subset_task_quotas cannot be empty.")
+        invalid = {
+            task: quota
+            for task, quota in self.subset_task_quotas.items()
+            if not task.strip() or quota < 1
+        }
+        if invalid:
+            raise ValueError(
+                "subset_task_quotas requires non-empty tasks and positive "
+                f"quotas: {invalid}"
+            )
+        if self.subset_limit is None:
+            raise ValueError("subset_limit is required with subset_task_quotas.")
+        total = sum(self.subset_task_quotas.values())
+        if total != self.subset_limit:
+            raise ValueError(
+                "subset_task_quotas must sum exactly to subset_limit: "
+                f"{total} != {self.subset_limit}."
+            )
         return self
 
     @model_validator(mode="after")
