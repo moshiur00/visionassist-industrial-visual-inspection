@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "run_id": "qwen25vl3b_qlora_hard_examples_v1",
+  "seed": 43,
+  "records": 6000,
+  "unique_instruction_ids": 6000,
+  "unique_images": 1284,
+  "instruction_ids_sha256": "440390b2a4ab6b5491eeaba806f5c5b45a9f460781bd67d9008fe13d33e1e3e6",
+  "task_counts": {
+    "binary_inspection": 400,
+    "defect_identification": 1500,
+    "evidence_explanation": 900,
+    "localization": 1300,
+    "product_identification": 300,
+    "structured_report": 1000,
+    "technician_note": 300,
+    "uncertainty": 300
+  },
+  "category_counts": {
+    "candle": 447,
+    "capsules": 913,
+    "cashew": 218,
+    "chewinggum": 727,
+    "fryum": 313,
+    "macaroni1": 306,
+    "macaroni2": 430,
+    "pcb1": 634,
+    "pcb2": 241,
+    "pcb3": 633,
+    "pcb4": 612,
+    "pipe_fryum": 526
+  },
+  "conditions": {
+    "anomalous": 5464,
+    "normal": 536
+  },
+  "validation_weighted_records": 4989,
+  "minimum_records_per_task_category": 20,
+  "validation_image_overlap": 0,
+  "test_image_overlap": 0,
+  "validation_predictions_sha256": "59ac6bccd07f07fc6dabcc435ef5682612b8599e4166ab6ab642d99743b07048"
+}

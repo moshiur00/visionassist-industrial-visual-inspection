@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "source_run": "qwen25vl3b_pilot_best_test_v1",
+  "source_predictions_sha256": "68c1380ef6b77be8f9a970dcadd91fcf6a9868311c32b9347d46a84f7bcd7727",
+  "records": 2100,
+  "defect": {
+    "records": 479,
+    "exact_matches": 88,
+    "exact_match_rate": 0.1837160751565762,
+    "unparsed": 57,
+    "largest_error_categories": {
+      "macaroni2": 46,
+      "macaroni1": 43,
+      "chewinggum": 39,
+      "candle": 34,
+      "pcb3": 34
+    },
+    "top_confusions": [
+      {"truth": "melt", "prediction": "**unparsed**", "count": 33},
+      {"truth": "melt", "prediction": "missing", "count": 31},
+      {"truth": "different_color_spot", "prediction": "color_spot+different_color_spot", "count": 17},
+      {"truth": "bubble", "prediction": "bubble+discolor+leak+misshape+scratch", "count": 14},
+      {"truth": "color_spot_similar_to_the_object", "prediction": "small_scratch", "count": 13}
+    ]
+  },
+  "localization": {
+    "records": 479,
+    "exact_matches": 218,
+    "exact_accuracy": 0.4551148225469729,
+    "adjacent_matches": 383,
+    "adjacent_accuracy": 0.7995824634655533,
+    "unparsed": 38,
+    "largest_error_categories": {
+      "macaroni1": 46,
+      "candle": 37,
+      "macaroni2": 33,
+      "capsules": 28,
+      "pcb4": 28
+    },
+    "top_confusions": [
+      {"truth": "center_left", "prediction": "center", "count": 34},
+      {"truth": "center_right", "prediction": "center", "count": 25},
+      {"truth": "bottom_center", "prediction": "center", "count": 21},
+      {"truth": "center", "prediction": "**unparsed**", "count": 19},
+      {"truth": "top_center", "prediction": "center", "count": 12}
+    ]
+  }
+}

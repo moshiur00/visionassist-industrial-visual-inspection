@@ -1,0 +1,18 @@
+run_id: qwen25vl3b_qlora_hard_examples_v1
+seed: 43
+train_path: data/processed/visa_instructions/train.jsonl
+validation_path: data/processed/visa_instructions/validation.jsonl
+test_path: data/processed/visa_instructions/test.jsonl
+validation_predictions_path: outputs/post_training/qwen25vl3b_pilot_best/validation/predictions.jsonl
+output_path: outputs/training_data/phase11/hard_examples.jsonl
+manifest_path: outputs/training_data/phase11/hard_examples_manifest.json
+min_per_category_per_task: 20
+task_quotas:
+  binary_inspection: 400
+  product_identification: 300
+  defect_identification: 1500
+  localization: 1300
+  evidence_explanation: 900
+  structured_report: 1000
+  technician_note: 300
+  uncertainty: 300

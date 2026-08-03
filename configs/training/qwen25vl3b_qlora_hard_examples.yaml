@@ -1,0 +1,61 @@
+run_id: qwen25vl3b_qlora_hard_examples_v1
+model_id: Qwen/Qwen2.5-VL-3B-Instruct
+initial_adapter_path: outputs/training/qwen25vl3b_qlora_pilot_v1/final_adapter
+model_revision: null
+processor_revision: null
+output_dir: outputs/training/qwen25vl3b_qlora_hard_examples_v1
+seed: 43
+trust_remote_code: false
+attention_implementation: sdpa
+hardware_profile: auto
+quantization:
+  enabled: true
+  load_in_4bit: true
+  quant_type: nf4
+  double_quant: true
+  compute_dtype: auto
+lora:
+  rank: 8
+  alpha: 16
+  dropout: 0.05
+  bias: none
+  target_suffixes:
+    - q_proj
+    - v_proj
+    - o_proj
+  train_multimodal_projector: false
+data:
+  train_path: outputs/training_data/phase11/hard_examples.jsonl
+  validation_path: data/processed/visa_instructions/validation.jsonl
+  max_sequence_length: 2048
+  image_min_pixels: 100352
+  image_max_pixels: 200704
+  train_limit: null
+  validation_limit: 1000
+  subset_seed: 43
+training:
+  max_steps: -1
+  num_train_epochs: 1.0
+  learning_rate: 0.00005
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 8
+  gradient_checkpointing: true
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  logging_steps: 10
+  eval_steps: 75
+  save_steps: 75
+  save_total_limit: 3
+  dataloader_num_workers: 0
+  optim: paged_adamw_8bit
+  lr_scheduler_type: cosine
+  report_to: []
+  tf32: true
+checkpoints:
+  resume: latest
+  keep_latest: 2
+  keep_best: 1
+  persistent_output_dir: null
+  sync_every_save: true
