@@ -143,6 +143,16 @@ def test_selection_enforces_category_floor(tmp_path: Path) -> None:
         assert counts == {"pcb1": sum(counts.values())}
 
 
+def test_selection_enforces_task_condition_quotas(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    config.task_condition_quotas = {
+        task: {"anomalous": quota} for task, quota in config.task_quotas.items()
+    }
+    _, manifest = select_hard_examples(config)
+
+    assert manifest["task_condition_counts"] == config.task_condition_quotas
+
+
 def test_selection_rejects_train_held_out_image_overlap(tmp_path: Path) -> None:
     config = _config(tmp_path)
     validation = [

@@ -141,3 +141,25 @@ def test_hard_example_training_starts_from_promoted_adapter() -> None:
     assert config.data.train_path == Path(
         "outputs/training_data/phase11/hard_examples.jsonl"
     )
+
+
+def test_balanced_replay_is_short_and_conservative() -> None:
+    config_path = (
+        Path(__file__).parents[1]
+        / "configs"
+        / "training"
+        / "qwen25vl3b_qlora_balanced_replay.yaml"
+    )
+    import yaml
+
+    config = Phase8TrainingConfig.model_validate(
+        yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    )
+
+    assert config.initial_adapter_path == Path(
+        "outputs/training/qwen25vl3b_qlora_pilot_v1/final_adapter"
+    )
+    assert config.training.learning_rate == 1e-5
+    assert config.training.max_steps == 150
+    assert config.training.eval_steps == 25
+    assert config.training.save_steps == 25

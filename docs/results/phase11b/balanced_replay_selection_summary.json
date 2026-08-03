@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "run_id": "qwen25vl3b_qlora_balanced_replay_v1",
+  "seed": 44,
+  "records": 6000,
+  "unique_instruction_ids": 6000,
+  "unique_images": 2392,
+  "instruction_ids_sha256": "2a32b6cc09e5a48e87fff10b8a60803655826e17bac6f85540c9d7af357828a0",
+  "conditions": {"anomalous": 4220, "normal": 1780},
+  "structured_report_conditions": {"anomalous": 300, "normal": 800},
+  "minimum_records_per_task_category": 10,
+  "validation_image_overlap": 0,
+  "test_image_overlap": 0,
+  "initial_adapter": "qwen25vl3b_qlora_pilot_v1/final_adapter",
+  "learning_rate": 0.00001,
+  "max_steps": 150,
+  "evaluation_steps": 25
+}

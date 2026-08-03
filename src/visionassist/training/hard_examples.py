@@ -49,6 +49,7 @@ class HardExampleConfig(BaseModel):
     output_path: Path
     manifest_path: Path
     task_quotas: dict[str, int]
+    task_condition_quotas: dict[str, dict[str, int]] | None = None
     min_per_category_per_task: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
@@ -57,6 +58,18 @@ class HardExampleConfig(BaseModel):
             raise ValueError("task_quotas must not be empty.")
         if any(quota <= 0 for quota in self.task_quotas.values()):
             raise ValueError("Every task quota must be positive.")
+        if self.task_condition_quotas is not None:
+            if set(self.task_condition_quotas) != set(self.task_quotas):
+                raise ValueError(
+                    "task_condition_quotas must define every task quota exactly."
+                )
+            for task, conditions in self.task_condition_quotas.items():
+                if not conditions or any(value <= 0 for value in conditions.values()):
+                    raise ValueError("Every task-condition quota must be positive.")
+                if sum(conditions.values()) != self.task_quotas[task]:
+                    raise ValueError(
+                        f"Task-condition quotas must sum to task quota for {task}."
+                    )
         return self
 
 
@@ -231,13 +244,44 @@ def select_hard_examples(
                 ]:
                     chosen.append(record)
                     chosen_ids.add(record.instruction_id)
-        remaining = quota - len(chosen)
-        chosen.extend(
-            record
-            for record in ranked
-            if record.instruction_id not in chosen_ids
+        condition_quotas = (
+            config.task_condition_quotas.get(task)
+            if config.task_condition_quotas is not None
+            else None
         )
-        chosen = chosen[: len(chosen_ids) + remaining]
+        if condition_quotas is None:
+            remaining = quota - len(chosen)
+            chosen.extend(
+                record
+                for record in ranked
+                if record.instruction_id not in chosen_ids
+            )
+            chosen = chosen[: len(chosen_ids) + remaining]
+        else:
+            chosen_conditions = Counter(
+                record.metadata.condition for record in chosen
+            )
+            for condition, condition_quota in sorted(condition_quotas.items()):
+                if chosen_conditions[condition] > condition_quota:
+                    raise ValueError(
+                        f"Category floor overfills {task}/{condition}: "
+                        f"{chosen_conditions[condition]} > {condition_quota}"
+                    )
+                needed = condition_quota - chosen_conditions[condition]
+                available = [
+                    record
+                    for record in ranked
+                    if record.instruction_id not in chosen_ids
+                    and record.metadata.condition == condition
+                ]
+                if len(available) < needed:
+                    raise ValueError(
+                        f"Condition quota exceeds available records for "
+                        f"{task}/{condition}: requested={condition_quota}"
+                    )
+                for record in available[:needed]:
+                    chosen.append(record)
+                    chosen_ids.add(record.instruction_id)
         selected.extend(chosen)
         selected_scores.update(
             _score(record, defect_errors, location_errors) for record in chosen
@@ -261,6 +305,7 @@ def select_hard_examples(
         "unique_images": len(selected_images),
         "instruction_ids_sha256": id_hash,
         "task_quotas": dict(sorted(config.task_quotas.items())),
+        "task_condition_quotas": config.task_condition_quotas,
         "task_counts": dict(sorted(Counter(r.task_family for r in selected).items())),
         "min_per_category_per_task": config.min_per_category_per_task,
         "task_category_counts": {
@@ -282,6 +327,19 @@ def select_hard_examples(
         "condition_counts": dict(
             sorted(Counter(r.metadata.condition for r in selected).items())
         ),
+        "task_condition_counts": {
+            task: dict(sorted(counts.items()))
+            for task, counts in sorted(
+                {
+                    task: Counter(
+                        record.metadata.condition
+                        for record in selected
+                        if record.task_family == task
+                    )
+                    for task in config.task_quotas
+                }.items()
+            )
+        },
         "score_distribution": {
             str(score): count for score, count in sorted(selected_scores.items())
         },

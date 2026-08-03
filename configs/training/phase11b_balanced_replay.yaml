@@ -1,0 +1,27 @@
+run_id: qwen25vl3b_qlora_balanced_replay_v1
+seed: 44
+train_path: data/processed/visa_instructions/train.jsonl
+validation_path: data/processed/visa_instructions/validation.jsonl
+test_path: data/processed/visa_instructions/test.jsonl
+validation_predictions_path: outputs/post_training/qwen25vl3b_pilot_best/validation/predictions.jsonl
+output_path: outputs/training_data/phase11b/balanced_replay.jsonl
+manifest_path: outputs/training_data/phase11b/balanced_replay_manifest.json
+min_per_category_per_task: 10
+task_quotas:
+  binary_inspection: 700
+  product_identification: 600
+  defect_identification: 1000
+  localization: 900
+  evidence_explanation: 700
+  structured_report: 1100
+  technician_note: 500
+  uncertainty: 500
+task_condition_quotas:
+  binary_inspection: {anomalous: 200, normal: 500}
+  product_identification: {anomalous: 120, normal: 480}
+  defect_identification: {anomalous: 1000}
+  localization: {anomalous: 900}
+  evidence_explanation: {anomalous: 700}
+  structured_report: {anomalous: 300, normal: 800}
+  technician_note: {anomalous: 500}
+  uncertainty: {anomalous: 500}
