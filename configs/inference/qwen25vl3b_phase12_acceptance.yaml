@@ -1,0 +1,49 @@
+run_id: qwen25vl3b_phase12_acceptance_v1
+model_id: Qwen/Qwen2.5-VL-3B-Instruct
+model_revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+processor_revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+adapter_path: outputs/training/qwen25vl3b_qlora_balanced_replay_v1/final_adapter
+benchmark_path: data/benchmarks/visa_baseline_v1/benchmark.jsonl
+benchmark_manifest_path: data/benchmarks/visa_baseline_v1/benchmark_manifest.json
+output_dir: outputs/release/phase12/acceptance
+partial_predictions_path: outputs/release/phase12/acceptance/predictions.partial.jsonl
+predictions_path: outputs/release/phase12/acceptance/predictions.jsonl
+errors_path: outputs/release/phase12/acceptance/inference_errors.jsonl
+run_manifest_path: outputs/release/phase12/acceptance/run_manifest.json
+evaluation_records_path: outputs/release/phase12/acceptance/evaluation_records.jsonl
+expected_dataset_split: test
+subset_limit: 96
+subset_task_quotas:
+  binary_inspection: 12
+  defect_identification: 12
+  evidence_explanation: 12
+  localization: 12
+  product_identification: 12
+  structured_report: 12
+  technician_note: 12
+  uncertainty: 12
+subset_seed: 45
+allow_path_normalized_hash_mismatch: false
+system_prompt: null
+precision: bfloat16
+device_map: auto
+attention_implementation: sdpa
+load_in_4bit: true
+image_min_pixels: 100352
+image_max_pixels: 200704
+trust_remote_code: false
+seed: 45
+save_every: 1
+stop_after: null
+max_errors: 0
+retry_failed: true
+overwrite: false
+persistent_output_dir: null
+persistent_sync_every: 12
+generation:
+  max_new_tokens: 256
+  do_sample: false
+  num_beams: 1
+  repetition_penalty: 1.0
+  temperature: null
+  top_p: null

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gc
+import hashlib
 import json
 import random
 import shutil
@@ -80,7 +81,12 @@ def _load_benchmark(config: InferenceConfig) -> list[InstructionRecord]:
         )
     if config.subset_limit is not None:
         dataset = VisionAssistJsonlDataset(path)
-        subset = subset_dataset(dataset, config.subset_limit, config.subset_seed)
+        subset = subset_dataset(
+            dataset,
+            config.subset_limit,
+            config.subset_seed,
+            config.subset_task_quotas,
+        )
         records = [subset[index] for index in range(len(subset))]
     identifiers = [record.instruction_id for record in records]
     if len(identifiers) != len(set(identifiers)):
@@ -284,6 +290,7 @@ def _initial_manifest(
     config: InferenceConfig,
     benchmark_hash: str,
     records: int,
+    instruction_ids_sha256: str,
     loaded: LoadedInferenceModel,
 ) -> dict[str, Any]:
     adapter_files: dict[str, str] = {}
@@ -302,6 +309,7 @@ def _initial_manifest(
         "benchmark_path": config.benchmark_path.as_posix(),
         "benchmark_sha256": benchmark_hash,
         "benchmark_records": records,
+        "instruction_ids_sha256": instruction_ids_sha256,
         "seed": config.seed,
         "system_prompt": config.system_prompt,
         "precision_requested": config.precision,
@@ -314,6 +322,7 @@ def _initial_manifest(
         "adapter_file_sha256": adapter_files,
         "expected_dataset_split": config.expected_dataset_split,
         "subset_limit": config.subset_limit,
+        "subset_task_quotas": config.subset_task_quotas,
         "subset_seed": config.subset_seed,
         "source_hash_path_normalization_override": (
             config.allow_path_normalized_hash_mismatch
@@ -395,7 +404,16 @@ def run_baseline_inference(
     failed_ids = _load_failed_ids(config.errors_path)
     _seed_everything(config.seed)
     loaded = loader(config)
-    manifest = _initial_manifest(config, benchmark_hash, len(records), loaded)
+    instruction_ids_sha256 = hashlib.sha256(
+        ("\n".join(benchmark_ids) + "\n").encode()
+    ).hexdigest()
+    manifest = _initial_manifest(
+        config,
+        benchmark_hash,
+        len(records),
+        instruction_ids_sha256,
+        loaded,
+    )
     manifest["resumed_predictions"] = len(completed_ids)
     atomic_write_json(config.run_manifest_path, manifest)
 
