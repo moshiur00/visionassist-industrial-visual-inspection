@@ -61,8 +61,14 @@ selection are reproducible and leakage checks pass.
 - [x] Add explicit promoted-adapter initialization with a fresh optimizer and
   lower `5e-5` learning rate.
 - [x] Create and syntax-check the gated Phase 11 Colab notebook.
-- [ ] Run the promoted-adapter one-batch GPU gate.
-- [ ] Train and evaluate the Phase 11 adapter.
+- [x] Run the promoted-adapter one-batch GPU gate.
+- [x] Train and validate the Phase 11 adapter.
+- [x] Reject Phase 11 before frozen testing because structured-report behavior
+  regressed catastrophically.
+- [x] Add per-task condition quotas and build the Phase 11b balanced-replay
+  selection.
+- [x] Create and syntax-check the Phase 11b gated Colab notebook.
+- [ ] Run the Phase 11b smoke gate, short training, and validation-only review.
 
 The first report found 88 exact defect matches among 479 anomalous direct and
 structured-report records. The dominant defect failure is PCB `melt` being
@@ -83,3 +89,24 @@ at least 20 examples, and overlap with validation and test images is zero. Its
 instruction-ID fingerprint is
 `440390b2a4ab6b5491eeaba806f5c5b45a9f460781bd67d9008fe13d33e1e3e6`.
 See the [selection summary](docs/results/phase11/hard_example_selection_summary.json).
+
+## Phase 11 outcome and Phase 11b correction
+
+Phase 11 improved direct defect F1 from 0.3755 to 0.4551 and evidence coverage
+from 0.4381 to 0.4869, but validation failure rate increased from 28.8% to
+44.9%. Structured-report condition accuracy fell to 25.1%, defect F1 to 9.6%,
+and location accuracy to 12.8%. The best checkpoint and exported adapter hashes
+were identical, ruling out an export bug. The frozen test was intentionally not
+run, and Phase 10 remains promoted.
+
+The cause was selection imbalance: all 1,000 structured-report records and
+5,464 of 6,000 total records were anomalous. Phase 11b adds exact per-task
+condition quotas. Its 6,000-record replay selection contains 4,220 anomalous and
+1,780 normal records, including 300 anomalous and 800 normal structured reports.
+It starts again from Phase 10 at `1e-5` for at most 150 steps, evaluating every
+25 steps. See the [rejected-run record](docs/results/phase11/rejected_hard_example_run.json)
+and [Phase 11b selection](docs/results/phase11b/balanced_replay_selection_summary.json).
+
+Use [the Phase 11b Colab notebook](scripts/VisionAssist_Phase11b_Colab.ipynb)
+for the recovery experiment. It intentionally stops after validation and does
+not contain an executable frozen-test cell.

@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "run_id": "qwen25vl3b_qlora_hard_examples_v1",
+  "status": "rejected_after_validation",
+  "global_step": 750,
+  "best_checkpoint": "checkpoint-75",
+  "best_metric": 0.07253006845712662,
+  "training_loss": 0.09787536509831747,
+  "best_and_final_adapter_sha256": "c5cb60a07cf11be66a176d8662dfcb5646fc9d6683e47029d34cf25e9325e1ad",
+  "validation": {
+    "records": 1000,
+    "inference_errors": 0,
+    "failure_rate": 0.449,
+    "binary_accuracy": 0.9301470588235294,
+    "defect_f1": 0.4550925925925926,
+    "evidence_fact_coverage": 0.4868882275132276,
+    "localization_accuracy": 0.42857142857142855,
+    "adjacent_localization_accuracy": 0.9,
+    "product_accuracy": 0.9908675799086758,
+    "structured_condition_accuracy": 0.251063829787234,
+    "structured_defect_f1": 0.095758189800743,
+    "structured_location_accuracy": 0.1276595744680851,
+    "structured_severity_accuracy": 0.1574468085106383,
+    "abstention_accuracy": 0.9090909090909091
+  },
+  "root_cause": {
+    "training_records": 6000,
+    "anomalous_records": 5464,
+    "normal_records": 536,
+    "structured_report_anomalous": 1000,
+    "structured_report_normal": 0,
+    "finding": "Validation-weighted ranking removed normal structured-report replay and caused catastrophic anomalous-response bias."
+  },
+  "artifact_sha256": {
+    "training_archive": "f5dbc010eb3cbcd34dcaa3b7bd3830a3c6dcd7be31aa7667cec90c72352cf892",
+    "validation_archive": "010cee78f029af1d237405a2839e71159f93a4a935e5373a00e0d3adf38f2597"
+  },
+  "frozen_test_run": false,
+  "promoted": false
+}
