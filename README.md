@@ -1,93 +1,179 @@
 # VisionAssist
 
-VisionAssist is a reproducible multimodal fine-tuning project for industrial visual inspection and defect explanation.
+**An end-to-end multimodal AI system for industrial defect inspection, built
+with Qwen2.5-VL and QLoRA.**
 
-The project converts the official VisA industrial anomaly dataset into a validated multimodal instruction dataset, benchmarks an untouched vision-language model, and provides GPU-aware QLoRA training infrastructure for fine-tuning Qwen2.5-VL-3B-Instruct.
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-QLoRA-EE4C2C?logo=pytorch&logoColor=white)
+![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Qwen2.5--VL-FFD21E?logo=huggingface&logoColor=black)
+![Dataset](https://img.shields.io/badge/VisA-52%2C863%20instructions-2E8B57)
+![Release](https://img.shields.io/badge/status-Phase%2012%20release%20readiness-orange)
+![License](https://img.shields.io/badge/code%20license-MIT-blue)
 
-## Project objective
+[Model card](MODEL_CARD.md) · [Release-readiness plan](README_PHASE12.md) ·
+[Development record](docs/VISIONASSIST_DEVELOPMENT_RECORD.md) ·
+[Promoted-model evidence](docs/results/phase11b/promoted_balanced_replay_results.json)
 
-Given an industrial inspection image and a natural-language request, the final system should be able to:
+VisionAssist transforms the official VisA anomaly dataset into a validated,
+leakage-safe multimodal instruction corpus, fine-tunes
+`Qwen/Qwen2.5-VL-3B-Instruct`, and evaluates the resulting adapter across eight
+industrial inspection tasks. The repository covers the complete ML lifecycle:
+data engineering, multimodal training, deterministic evaluation, experiment
+recovery, model promotion, artifact verification, rollback, and gated release.
 
-- classify the item as normal or defective;
-- identify the product category;
-- describe the visible defect;
-- localize the anomaly coarsely;
-- explain the visible evidence;
-- return a structured quality-control report;
-- produce a concise technician note;
-- abstain from unsupported root-cause or safety claims.
+## Why this project stands out
 
-The project does **not** claim to determine mechanical root cause, hidden internal damage, safety impact, or authoritative repair instructions from an image alone.
+- **52,863 grounded multimodal instructions** generated from 10,821 validated
+  industrial images across 12 product categories.
+- **Leakage-safe experimental design** with source-image, path, and SHA-256
+  duplicate isolation across train, validation, and held-out test splits.
+- **Measured model improvement** on one frozen 2,100-record benchmark: overall
+  failure rate fell from 82.9% to 44.6%.
+- **Efficient multimodal adaptation** with 4-bit NF4 QLoRA and only 3.02 million
+  trainable parameters over a roughly 2-billion-parameter loaded model.
+- **Resumable GPU engineering** for Colab, including checkpoint persistence,
+  partial inference synchronization, deterministic subsets, and recovery after
+  runtime disconnection.
+- **Production-minded safeguards** including immutable artifact hashes, pinned
+  model revisions, acceptance gates, model documentation, and an explicit
+  rollback adapter.
 
----
+## What the system can do
+
+| Task | Output |
+| --- | --- |
+| Binary inspection | Classifies an item as normal or anomalous |
+| Product identification | Recognizes one of 12 VisA product categories |
+| Defect identification | Describes the visible annotated defect |
+| Localization | Places the anomaly in a coarse nine-region grid |
+| Evidence explanation | Explains visible, image-grounded evidence |
+| Structured reporting | Returns a schema-validated quality-control report |
+| Technician notes | Produces concise inspection notes |
+| Uncertainty handling | Abstains from unsupported causal or safety claims |
+
+VisionAssist is a **decision-support research system**. It does not claim to
+determine mechanical root cause, hidden damage, safety impact, or authoritative
+repair instructions from an image alone.
+
+## End-to-end architecture
+
+```mermaid
+flowchart LR
+    A[Official VisA data] --> B[Safe acquisition and SHA-256 audit]
+    B --> C[Canonical metadata and mask parsing]
+    C --> D[Spatial features and severity labels]
+    D --> E[Leakage-safe image splits]
+    E --> F[52,863 multimodal instructions]
+    F --> G[Task-balanced QLoRA training]
+    G --> H[Frozen task-specific evaluation]
+    H --> I[Promotion and rollback decision]
+    I --> J[Release verification and acceptance gate]
+```
+
+The implementation is configuration-driven and exposed through a typed CLI.
+Each major transformation produces manifests, statistics, validation reports,
+and deterministic fingerprints so that results can be reproduced and audited.
+
+## Results at a glance
+
+All results below use the same frozen 2,100-record held-out benchmark.
+
+| Metric | Untouched Qwen | Promoted VisionAssist | Improvement |
+| --- | ---: | ---: | ---: |
+| Overall failure rate ↓ | 82.90% | **44.62%** | **−38.28 pp** |
+| Binary inspection accuracy ↑ | 35.50% | **85.00%** | **+49.50 pp** |
+| Product identification accuracy ↑ | 16.00% | **99.33%** | **+83.33 pp** |
+| Defect-identification F1 ↑ | 0.0000 | **0.4239** | **+0.4239** |
+| Exact localization accuracy ↑ | 19.70% | **46.33%** | **+26.63 pp** |
+| Structured-report schema validity ↑ | 0.00% | **99.33%** | **+99.33 pp** |
+| Appropriate abstention accuracy ↑ | 74.00% | **98.00%** | **+24.00 pp** |
+
+The promoted adapter completed all 2,100 predictions with **zero inference
+errors**, **zero unsupported root-cause claims**, and **zero unsupported safety
+claims**. Product identification is strong; defect vocabulary, exact
+localization, and evidence completeness remain documented areas for improvement.
+
+## Engineering highlights
+
+- Pydantic-validated YAML configuration for data, inference, training, and
+  release contracts.
+- Deterministic task-balanced sampling with ordered instruction fingerprints.
+- Safe archive extraction, resumable downloads, and content-addressed data
+  checks.
+- Assistant-only loss masking for multimodal supervised fine-tuning.
+- GPU-aware BF16/FP16 selection, gradient checkpointing, NF4 quantization, and
+  bounded checkpoint retention.
+- Resumable inference with atomic JSON/JSONL writes and Google Drive sync.
+- Task-specific parsing and metrics rather than a single opaque aggregate score.
+- Tamper-detecting release verification for promoted and rollback adapters.
+- CPU regression tests plus explicit one-batch, acceptance, and packaging gates.
+
+## Technology stack
+
+| Area | Technologies and practices |
+| --- | --- |
+| Multimodal modeling | Qwen2.5-VL, PyTorch, Transformers, PEFT, TRL |
+| Efficient training | QLoRA, bitsandbytes NF4, BF16, gradient checkpointing |
+| Data engineering | Pydantic, Pillow, pandas, NumPy, JSONL, YAML |
+| Evaluation | Task-specific parsers, confusion matrices, grounded-fact coverage |
+| MLOps and reliability | `uv`, Git, SHA-256 manifests, atomic writes, resumable checkpoints |
+| Compute workflow | Google Colab, NVIDIA A100, Google Drive persistence |
+| Quality assurance | pytest, Ruff, mypy, deterministic seeds, frozen benchmarks |
+
+## Model card summary
+
+| Item | Pinned identity or result |
+| --- | --- |
+| Base model | `Qwen/Qwen2.5-VL-3B-Instruct` |
+| Pinned model and processor revision | `66285546d2b821cf421d4f5eb2576359d3770cd3` |
+| Adaptation method | QLoRA, rank 8, alpha 16, dropout 0.05 |
+| Promoted adapter | `qwen25vl3b_qlora_balanced_replay_v1` |
+| Promoted adapter SHA-256 | `d335e37fdd8c96c0e9a823992f4aa458b0500b542986dedccde21561a142590f` |
+| Rollback adapter | `qwen25vl3b_qlora_pilot_v1` |
+| Frozen benchmark | 2,100 instructions over 591 held-out images |
+| Release status | Phase 12 acceptance pending |
+
+### Intended use
+
+The adapter is intended for research and human-reviewed assistance with visible
+industrial anomaly classification, product recognition, defect description,
+coarse localization, evidence explanation, and structured reporting within the
+VisA domain.
+
+### Known limitations
+
+- 937 of 2,100 held-out records triggered at least one evaluation failure tag.
+- Direct defect-identification F1 is 0.4239 and remains the weakest core task.
+- Exact localization accuracy is 46.33%, versus 86.67% with adjacent-region
+  tolerance.
+- Evidence explanations cover 49.70% of annotated facts on average.
+- The frozen test contained one invalid JSON report and three failed abstentions.
+- Behavior outside the 12 VisA categories has not been validated.
+
+Operational use requires human review, identity verification, deterministic
+runtime settings, and the documented rollback path. See the
+**[full model card](MODEL_CARD.md)** for training details, metrics, limitations,
+safeguards, runtime requirements, and licensing considerations.
 
 ## Current status
 
-The data pipeline, training infrastructure, frozen baseline, adapter evaluation,
-task-balanced 10,000-example pilot, and balanced-replay correction are complete.
-The Phase 11b adapter is the promoted model, with Phase 10 retained as rollback.
-The planned training cycle is closed. Phase 12 release-readiness development is
-in progress: immutable identities, acceptance gates, model documentation, and
-rollback controls are implemented, with the clean-runtime GPU check outstanding.
+The data, training, evaluation, and model-promotion stages are complete. Phase
+11b is the promoted adapter, and Phase 10 is retained as rollback. Phase 12 has
+implemented immutable identities, release thresholds, a task-balanced
+96-record acceptance suite, and gated packaging. The remaining release step is
+the clean-runtime GPU acceptance run.
 
-| Phase                            | Status   | Main output                               |
-| -------------------------------- | -------- | ----------------------------------------- |
-| Phase 1 — Dataset acquisition    | Complete | Verified VisA raw dataset                 |
-| Phase 2 — Dataset parsing        | Complete | Canonical metadata JSONL                  |
-| Phase 3 — Feature derivation     | Complete | Spatially enriched records                |
-| Phase 4 — Data splitting         | Complete | Leakage-safe train/validation/test splits |
-| Phase 5 — Instruction generation | Complete | 52,863 multimodal instruction records     |
-| Phase 6 — Training readiness     | Complete | Processor, masking, and data validation   |
-| Phase 7 — Baseline evaluation    | Complete | Frozen benchmark and baseline results     |
-| Phase 8 — QLoRA infrastructure   | Complete | Memory-safe training and checkpointing    |
-| Phase 9 — Adapter evaluation     | Complete | Overfit and 1,000-example adapter results |
-| Phase 10 — Task-balanced pilot   | Complete | 10,000-example pilot and full evaluation  |
-| Phase 11 — Hard-example iteration | Complete | Balanced replay and promoted final adapter |
-| Phase 12 — Release readiness      | In progress | Packaging, runtime QA, and model card    |
+| Phase | Status | Main outcome |
+| --- | --- | --- |
+| 1–6 · Data foundation | Complete | 52,863 validated multimodal instructions |
+| 7 · Frozen baseline | Complete | Reproducible untouched-model benchmark |
+| 8–9 · Training infrastructure | Complete | QLoRA, checkpointing, and adapter evaluation |
+| 10 · Task-balanced pilot | Complete | 10,000-example promoted-candidate run |
+| 11 · Hard-example correction | Complete | Balanced replay and final promoted adapter |
+| 12 · Release readiness | **In progress** | Clean-runtime acceptance and release bundle |
 
-Final dataset counts:
-
-| Split      | Source images | Instructions |
-| ---------- | ------------: | -----------: |
-| Train      |         7,575 |       37,005 |
-| Validation |         1,622 |        7,926 |
-| Test       |         1,624 |        7,932 |
-| **Total**  |    **10,821** |   **52,863** |
-
-Final validation status:
-
-```text
-Errors: 0
-Warnings: 0
-```
-
-Untouched-model baseline highlights:
-
-| Metric | Result |
-| --- | ---: |
-| Benchmark records | 2,100 |
-| Inference errors | 0 |
-| Overall failure rate | 82.9% |
-| Binary inspection accuracy | 35.5% |
-| Product identification accuracy | 16.0% |
-| Defect exact match | 0.0% |
-| Localization accuracy | 19.7% |
-| Structured-report schema validity | 0.0% |
-| Appropriate abstention accuracy | 74.0% |
-
-The baseline was run in BF16 without 4-bit quantization on an NVIDIA A100
-40 GB. These results are the frozen reference for measuring improvement after
-fine-tuning.
-
-Phase 8 validation highlights:
-
-- the revised one-batch forward-and-backward smoke test passed;
-- peak allocated VRAM was 3.72 GiB on an A100 40 GB;
-- 3,022,848 LoRA parameters were trainable;
-- gradients were finite and nonzero;
-- the 32-example, 100-step overfit run completed;
-- the best validation loss was 1.246 at checkpoint 50;
-- the final reported training loss was 0.750.
+The complete technical history is preserved in the
+[development record](docs/VISIONASSIST_DEVELOPMENT_RECORD.md).
 
 ---
 
