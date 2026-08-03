@@ -138,6 +138,9 @@ runs/
 # Local project snapshots
 project_snapshots/
 
+# Private interview and personal working materials
+/private/
+
 # Local-only configuration overrides
 configs/local/
 configs/**/*.local.yaml
