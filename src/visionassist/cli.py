@@ -6,7 +6,13 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TransferSpeedColumn
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    TextColumn,
+    TransferSpeedColumn,
+)
 
 from visionassist.benchmarks.build_visa_baseline import build_visa_baseline
 from visionassist.benchmarks.schemas import load_benchmark_config
@@ -415,6 +421,74 @@ if __name__ == "__main__":
 
 def _training_config_option() -> Path:
     return Path("configs/training/qwen25vl3b_qlora_overfit.yaml")
+
+
+@app.command("analyze-adapter-failures")
+def analyze_adapter_failures_command(
+    predictions: Path = typer.Option(
+        ...,
+        "--predictions",
+        "-p",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Completed adapter predictions JSONL.",
+    ),
+    output: Path = typer.Option(
+        Path("outputs/analysis/phase11/failure_analysis.json"),
+        "--output",
+        "-o",
+        help="Destination for the deterministic analysis report.",
+    ),
+) -> None:
+    """Analyze defect and localization confusions for Phase 11."""
+
+    from visionassist.evaluation.failure_analysis import write_failure_analysis
+
+    result_path = write_failure_analysis(predictions, output)
+    payload = __import__("json").loads(result_path.read_text(encoding="utf-8"))
+    console.print("[bold green]Phase 11 failure analysis completed.[/bold green]")
+    console.print(f"Records: {payload['records']}")
+    console.print(
+        "Defect exact match: "
+        f"{payload['defect']['exact_matches']}/{payload['defect']['records']}"
+    )
+    console.print(
+        "Localization exact match: "
+        f"{payload['localization']['exact_matches']}/"
+        f"{payload['localization']['records']}"
+    )
+    console.print(f"Report: {result_path}")
+
+
+@app.command("select-hard-examples")
+def select_hard_examples_command(
+    config: Path = typer.Option(
+        Path("configs/training/phase11_hard_examples.yaml"),
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Build a validation-driven, leakage-safe Phase 11 training selection."""
+
+    from visionassist.training.hard_examples import (
+        load_hard_example_config,
+        write_hard_examples,
+    )
+
+    output_path, manifest_path = write_hard_examples(
+        load_hard_example_config(config)
+    )
+    payload = __import__("json").loads(manifest_path.read_text(encoding="utf-8"))
+    console.print("[bold green]Phase 11 hard-example selection completed.[/bold green]")
+    console.print(f"Records: {payload['records']}")
+    console.print(f"Unique images: {payload['unique_images']}")
+    console.print(f"Instruction-ID SHA-256: {payload['instruction_ids_sha256']}")
+    console.print(f"Selection: {output_path}")
+    console.print(f"Manifest: {manifest_path}")
 
 
 @app.command("training-environment")

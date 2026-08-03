@@ -7,10 +7,10 @@ import json
 import random
 import subprocess
 from collections import Counter, defaultdict
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import yaml
 
@@ -217,11 +217,21 @@ def write_experiment_files(
     manifest = {
         "schema_version": "1.0",
         "run_id": config.run_id,
-        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "created_at_utc": datetime.now(UTC).isoformat(),
         "git_commit": git_value(project_root, "rev-parse", "HEAD"),
         "git_branch": git_value(project_root, "branch", "--show-current"),
         "git_status": git_value(project_root, "status", "--short"),
         "model_id": config.model_id,
+        "initial_adapter_path": (
+            str(config.initial_adapter_path)
+            if config.initial_adapter_path is not None
+            else None
+        ),
+        "initial_adapter_sha256": (
+            sha256_file(config.initial_adapter_path / "adapter_model.safetensors")
+            if config.initial_adapter_path is not None
+            else None
+        ),
         "model_revision": config.model_revision,
         "processor_revision": config.processor_revision,
         "seed": config.seed,

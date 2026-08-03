@@ -53,8 +53,8 @@ def _language_target_modules(model: Any, suffixes: list[str]) -> list[str]:
             found.append(name)
     if not found:
         raise RuntimeError(
-            "No language-model LoRA targets were discovered. Inspect model.named_modules() "
-            "before changing target policy."
+            "No language-model LoRA targets were discovered. Inspect "
+            "model.named_modules() before changing target policy."
         )
     return sorted(set(found))
 
@@ -72,7 +72,12 @@ def build_qlora_model(
         )
     try:
         import torch
-        from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+        from peft import (
+            LoraConfig,
+            PeftModel,
+            get_peft_model,
+            prepare_model_for_kbit_training,
+        )
         from transformers import (
             AutoProcessor,
             BitsAndBytesConfig,
@@ -127,22 +132,40 @@ def build_qlora_model(
         )
 
     target_modules = _language_target_modules(model, config.lora.target_suffixes)
-    lora_config = LoraConfig(
-        r=config.lora.rank,
-        lora_alpha=config.lora.alpha,
-        lora_dropout=config.lora.dropout,
-        bias=config.lora.bias,
-        target_modules=target_modules,
-        task_type="CAUSAL_LM",
-    )
-    model = get_peft_model(model, lora_config)
+    if config.initial_adapter_path is not None:
+        adapter_config = config.initial_adapter_path / "adapter_config.json"
+        adapter_weights = config.initial_adapter_path / "adapter_model.safetensors"
+        if not adapter_config.is_file() or not adapter_weights.is_file():
+            raise FileNotFoundError(
+                "initial_adapter_path requires adapter_config.json and "
+                f"adapter_model.safetensors: {config.initial_adapter_path}"
+            )
+        model = PeftModel.from_pretrained(
+            model,
+            config.initial_adapter_path,
+            is_trainable=True,
+        )
+    else:
+        lora_config = LoraConfig(
+            r=config.lora.rank,
+            lora_alpha=config.lora.alpha,
+            lora_dropout=config.lora.dropout,
+            bias=config.lora.bias,
+            target_modules=target_modules,
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, lora_config)
 
     # Explicitly prevent accidental vision-tower training.
     for name, parameter in model.named_parameters():
         if "visual" in name.lower() or "vision" in name.lower():
             parameter.requires_grad = False
 
-    trainable = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+    trainable = sum(
+        parameter.numel()
+        for parameter in model.parameters()
+        if parameter.requires_grad
+    )
     total = sum(parameter.numel() for parameter in model.parameters())
     if trainable == 0:
         raise RuntimeError("No trainable LoRA parameters were created.")

@@ -147,6 +147,7 @@ class Phase8TrainingConfig(BaseModel):
 
     run_id: str = Field(min_length=1)
     model_id: str = "Qwen/Qwen2.5-VL-3B-Instruct"
+    initial_adapter_path: Path | None = None
     model_revision: str | None = None
     processor_revision: str | None = None
     output_dir: Path

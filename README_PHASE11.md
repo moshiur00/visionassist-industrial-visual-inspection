@@ -5,6 +5,10 @@ The Phase 10 adapter is the frozen comparison point; its weights and raw
 predictions remain external artifacts, while its compact results are tracked in
 [`docs/results/phase10/pilot_results.json`](docs/results/phase10/pilot_results.json).
 
+Use [the Phase 11 Colab notebook](scripts/VisionAssist_Phase11_Colab.ipynb) to
+reproduce the selection, restore the promoted adapter, run the GPU smoke gate,
+train resumably, and evaluate behind separate validation and frozen-test gates.
+
 ## Evidence
 
 The pilot reduced the complete held-out benchmark failure rate from 53.86% to
@@ -42,3 +46,40 @@ wrong or adjacent location (265 combined).
 
 No Phase 11 training begins until the failure analysis and hard-example
 selection are reproducible and leakage checks pass.
+
+## Progress
+
+- [x] Implement a deterministic `analyze-adapter-failures` CLI command.
+- [x] Add duplicate-ID, deterministic-output, defect-confusion, and
+  localization-confusion tests.
+- [x] Analyze all 2,100 held-out pilot predictions.
+- [ ] Audit defect aliases and compound-label parsing.
+- [ ] Add anomaly-size-aware localization analysis.
+- [x] Build the leakage-safe hard-example selector.
+- [x] Select 6,000 unique train instructions with exact task quotas, a
+  20-record floor for every task/category pair, and zero held-out image overlap.
+- [x] Add explicit promoted-adapter initialization with a fresh optimizer and
+  lower `5e-5` learning rate.
+- [x] Create and syntax-check the gated Phase 11 Colab notebook.
+- [ ] Run the promoted-adapter one-batch GPU gate.
+- [ ] Train and evaluate the Phase 11 adapter.
+
+The first report found 88 exact defect matches among 479 anomalous direct and
+structured-report records. The dominant defect failure is PCB `melt` being
+unparsed or predicted as `missing`. Macaroni1, macaroni2, and chewinggum have the
+largest total defect-error counts.
+
+Localization produced 218 exact and 383 adjacent-tolerant matches among the
+same 479 records. The dominant pattern is collapsing `center_left`,
+`center_right`, and `bottom_center` into `center`. Macaroni1, candle, and
+macaroni2 have the largest localization-error counts. See the
+[compact analysis summary](docs/results/phase11/pilot_test_failure_analysis_summary.json).
+
+The accepted hard-example selection contains 6,000 unique instructions over
+1,284 images. Validation errors influenced 4,989 selected records; the remaining
+1,011 preserve coverage for binary inspection, product identification, and
+other strata without a matching validation error. Every task/category pair has
+at least 20 examples, and overlap with validation and test images is zero. Its
+instruction-ID fingerprint is
+`440390b2a4ab6b5491eeaba806f5c5b45a9f460781bd67d9008fe13d33e1e3e6`.
+See the [selection summary](docs/results/phase11/hard_example_selection_summary.json).

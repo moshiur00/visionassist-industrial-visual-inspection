@@ -119,3 +119,25 @@ def test_training_arguments_avoid_removed_save_safetensors_option() -> None:
     ).read_text(encoding="utf-8")
 
     assert "save_safetensors=" not in training_source
+
+
+def test_hard_example_training_starts_from_promoted_adapter() -> None:
+    config_path = (
+        Path(__file__).parents[1]
+        / "configs"
+        / "training"
+        / "qwen25vl3b_qlora_hard_examples.yaml"
+    )
+    import yaml
+
+    payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config = Phase8TrainingConfig.model_validate(payload)
+
+    assert config.initial_adapter_path == Path(
+        "outputs/training/qwen25vl3b_qlora_pilot_v1/final_adapter"
+    )
+    assert config.output_dir != config.initial_adapter_path.parent
+    assert config.training.learning_rate == 5e-5
+    assert config.data.train_path == Path(
+        "outputs/training_data/phase11/hard_examples.jsonl"
+    )
