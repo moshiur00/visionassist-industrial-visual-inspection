@@ -40,16 +40,16 @@ recovery, model promotion, artifact verification, rollback, and gated release.
 
 ## What the system can do
 
-| Task | Output |
-| --- | --- |
-| Binary inspection | Classifies an item as normal or anomalous |
-| Product identification | Recognizes one of 12 VisA product categories |
-| Defect identification | Describes the visible annotated defect |
-| Localization | Places the anomaly in a coarse nine-region grid |
-| Evidence explanation | Explains visible, image-grounded evidence |
-| Structured reporting | Returns a schema-validated quality-control report |
-| Technician notes | Produces concise inspection notes |
-| Uncertainty handling | Abstains from unsupported causal or safety claims |
+| Task                   | Output                                            |
+| ---------------------- | ------------------------------------------------- |
+| Binary inspection      | Classifies an item as normal or anomalous         |
+| Product identification | Recognizes one of 12 VisA product categories      |
+| Defect identification  | Describes the visible annotated defect            |
+| Localization           | Places the anomaly in a coarse nine-region grid   |
+| Evidence explanation   | Explains visible, image-grounded evidence         |
+| Structured reporting   | Returns a schema-validated quality-control report |
+| Technician notes       | Produces concise inspection notes                 |
+| Uncertainty handling   | Abstains from unsupported causal or safety claims |
 
 VisionAssist is a **decision-support research system**. It does not claim to
 determine mechanical root cause, hidden damage, safety impact, or authoritative
@@ -78,15 +78,15 @@ and deterministic fingerprints so that results can be reproduced and audited.
 
 All results below use the same frozen 2,100-record held-out benchmark.
 
-| Metric | Untouched Qwen | Promoted VisionAssist | Improvement |
-| --- | ---: | ---: | ---: |
-| Overall failure rate ↓ | 82.90% | **44.62%** | **−38.28 pp** |
-| Binary inspection accuracy ↑ | 35.50% | **85.00%** | **+49.50 pp** |
-| Product identification accuracy ↑ | 16.00% | **99.33%** | **+83.33 pp** |
-| Defect-identification F1 ↑ | 0.0000 | **0.4239** | **+0.4239** |
-| Exact localization accuracy ↑ | 19.70% | **46.33%** | **+26.63 pp** |
-| Structured-report schema validity ↑ | 0.00% | **99.33%** | **+99.33 pp** |
-| Appropriate abstention accuracy ↑ | 74.00% | **98.00%** | **+24.00 pp** |
+| Metric                              | Untouched Qwen | Promoted VisionAssist |   Improvement |
+| ----------------------------------- | -------------: | --------------------: | ------------: |
+| Overall failure rate ↓              |         82.90% |            **44.62%** | **−38.28 pp** |
+| Binary inspection accuracy ↑        |         35.50% |            **85.00%** | **+49.50 pp** |
+| Product identification accuracy ↑   |         16.00% |            **99.33%** | **+83.33 pp** |
+| Defect-identification F1 ↑          |         0.0000 |            **0.4239** |   **+0.4239** |
+| Exact localization accuracy ↑       |         19.70% |            **46.33%** | **+26.63 pp** |
+| Structured-report schema validity ↑ |          0.00% |            **99.33%** | **+99.33 pp** |
+| Appropriate abstention accuracy ↑   |         74.00% |            **98.00%** | **+24.00 pp** |
 
 The promoted adapter completed all 2,100 predictions with **zero inference
 errors**, **zero unsupported root-cause claims**, and **zero unsupported safety
@@ -110,28 +110,28 @@ localization, and evidence completeness remain documented areas for improvement.
 
 ## Technology stack
 
-| Area | Technologies and practices |
-| --- | --- |
-| Multimodal modeling | Qwen2.5-VL, PyTorch, Transformers, PEFT, TRL |
-| Efficient training | QLoRA, bitsandbytes NF4, BF16, gradient checkpointing |
-| Data engineering | Pydantic, Pillow, pandas, NumPy, JSONL, YAML |
-| Evaluation | Task-specific parsers, confusion matrices, grounded-fact coverage |
+| Area                  | Technologies and practices                                         |
+| --------------------- | ------------------------------------------------------------------ |
+| Multimodal modeling   | Qwen2.5-VL, PyTorch, Transformers, PEFT, TRL                       |
+| Efficient training    | QLoRA, bitsandbytes NF4, BF16, gradient checkpointing              |
+| Data engineering      | Pydantic, Pillow, pandas, NumPy, JSONL, YAML                       |
+| Evaluation            | Task-specific parsers, confusion matrices, grounded-fact coverage  |
 | MLOps and reliability | `uv`, Git, SHA-256 manifests, atomic writes, resumable checkpoints |
-| Compute workflow | Google Colab, NVIDIA A100, Google Drive persistence |
-| Quality assurance | pytest, Ruff, mypy, deterministic seeds, frozen benchmarks |
+| Compute workflow      | Google Colab, NVIDIA A100, Google Drive persistence                |
+| Quality assurance     | pytest, Ruff, mypy, deterministic seeds, frozen benchmarks         |
 
 ## Model card summary
 
-| Item | Pinned identity or result |
-| --- | --- |
-| Base model | `Qwen/Qwen2.5-VL-3B-Instruct` |
-| Pinned model and processor revision | `66285546d2b821cf421d4f5eb2576359d3770cd3` |
-| Adaptation method | QLoRA, rank 8, alpha 16, dropout 0.05 |
-| Promoted adapter | `qwen25vl3b_qlora_balanced_replay_v1` |
-| Promoted adapter SHA-256 | `d335e37fdd8c96c0e9a823992f4aa458b0500b542986dedccde21561a142590f` |
-| Rollback adapter | `qwen25vl3b_qlora_pilot_v1` |
-| Frozen benchmark | 2,100 instructions over 591 held-out images |
-| Release status | Phase 12 acceptance pending |
+| Item                                | Pinned identity or result                                          |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| Base model                          | `Qwen/Qwen2.5-VL-3B-Instruct`                                      |
+| Pinned model and processor revision | `66285546d2b821cf421d4f5eb2576359d3770cd3`                         |
+| Adaptation method                   | QLoRA, rank 8, alpha 16, dropout 0.05                              |
+| Promoted adapter                    | `qwen25vl3b_qlora_balanced_replay_v1`                              |
+| Promoted adapter SHA-256            | `d335e37fdd8c96c0e9a823992f4aa458b0500b542986dedccde21561a142590f` |
+| Rollback adapter                    | `qwen25vl3b_qlora_pilot_v1`                                        |
+| Frozen benchmark                    | 2,100 instructions over 591 held-out images                        |
+| Release status                      | Phase 12 acceptance pending                                        |
 
 ### Intended use
 
@@ -163,14 +163,14 @@ implemented immutable identities, release thresholds, a task-balanced
 96-record acceptance suite, and gated packaging. The remaining release step is
 the clean-runtime GPU acceptance run.
 
-| Phase | Status | Main outcome |
-| --- | --- | --- |
-| 1–6 · Data foundation | Complete | 52,863 validated multimodal instructions |
-| 7 · Frozen baseline | Complete | Reproducible untouched-model benchmark |
-| 8–9 · Training infrastructure | Complete | QLoRA, checkpointing, and adapter evaluation |
-| 10 · Task-balanced pilot | Complete | 10,000-example promoted-candidate run |
-| 11 · Hard-example correction | Complete | Balanced replay and final promoted adapter |
-| 12 · Release readiness | **In progress** | Clean-runtime acceptance and release bundle |
+| Phase                         | Status          | Main outcome                                 |
+| ----------------------------- | --------------- | -------------------------------------------- |
+| 1–6 · Data foundation         | Complete        | 52,863 validated multimodal instructions     |
+| 7 · Frozen baseline           | Complete        | Reproducible untouched-model benchmark       |
+| 8–9 · Training infrastructure | Complete        | QLoRA, checkpointing, and adapter evaluation |
+| 10 · Task-balanced pilot      | Complete        | 10,000-example promoted-candidate run        |
+| 11 · Hard-example correction  | Complete        | Balanced replay and final promoted adapter   |
+| 12 · Release readiness        | **In progress** | Clean-runtime acceptance and release bundle  |
 
 The complete technical history is preserved in the
 [development record](docs/VISIONASSIST_DEVELOPMENT_RECORD.md).
@@ -244,7 +244,7 @@ uv.lock
 
 ## Run the full data pipeline
 
-### Phase 1 — Dataset acquisition and audit
+### Phase 1 - Dataset acquisition and audit
 
 ```powershell
 uv run visionassist phase1-visa --config configs/data/visa.yaml
@@ -286,7 +286,7 @@ Re-audit an existing extraction:
 uv run visionassist audit-visa --config configs/data/visa.yaml
 ```
 
-### Phase 2 — Annotation and mask parsing
+### Phase 2 - Annotation and mask parsing
 
 ```powershell
 uv run visionassist phase2-visa --config configs/data/visa.yaml
@@ -339,7 +339,7 @@ Errors: 0
 Warnings: 0
 ```
 
-### Phase 3 — Feature derivation
+### Phase 3 - Feature derivation
 
 ```powershell
 uv run visionassist phase3-visa --config configs/data/visa.yaml
@@ -393,7 +393,7 @@ Errors: 0
 Warnings: 0
 ```
 
-### Phase 4 — Leakage-safe data splitting
+### Phase 4 - Leakage-safe data splitting
 
 ```powershell
 uv run visionassist phase4-visa --config configs/data/visa.yaml
@@ -445,7 +445,7 @@ Test:        1,624
 Total:      10,821
 ```
 
-### Phase 5 — Multimodal instruction generation
+### Phase 5 - Multimodal instruction generation
 
 ```powershell
 uv run visionassist phase5-visa --config configs/data/visa.yaml
@@ -504,7 +504,7 @@ Test:         7,932
 Total:       52,863
 ```
 
-### Phase 6 — Training-readiness validation
+### Phase 6 - Training-readiness validation
 
 ```powershell
 uv run visionassist phase6-visa --config configs/data/visa.yaml
@@ -521,7 +521,7 @@ Generated reports are stored in:
 reports/training_readiness/
 ```
 
-### Phase 7 — Frozen baseline benchmark
+### Phase 7 - Frozen baseline benchmark
 
 Phase 7 builds a deterministic 2,100-record benchmark, runs untouched-model
 inference, and evaluates task-specific predictions.
@@ -539,7 +539,7 @@ outputs/baseline/qwen2_5_vl_3b_direct/
 outputs/baseline/direct_evaluation/
 ```
 
-### Phase 8 — QLoRA training infrastructure
+### Phase 8 - QLoRA training infrastructure
 
 Phase 8 adds hardware inspection, 4-bit model loading, language-only LoRA
 target discovery, deterministic training subsets, forward-and-backward smoke
@@ -775,7 +775,7 @@ The snapshot includes source code, configuration, tests, documentation, and ligh
 
 ## Next phase
 
-The active phase is **Phase 12 — Release readiness**.
+The active phase is **Phase 12 - Release readiness**.
 
 Phase 11b is the promoted final adapter for this training cycle. On the complete
 2,100-record frozen test it reduced failures from 966 to 937 (46.00% to 44.62%),
